@@ -1,20 +1,40 @@
 pipeline {
     agent any
 
+    tools {
+        // Optional: specify Node.js installation from Jenkins tools config
+        nodejs 'NodeJS_20' 
+    }
+
     stages {
-        stage('Build') {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install') {
             steps {
                 script {
-                    // Detect OS
-                    def isWindows = isUnix() == false
-
-                    // Example build step that runs differently on Windows/Linux
-                    if (isWindows) {
-                        echo "Running on Windows"
-                        bat 'build.bat'
+                    if (isUnix()) {
+                        echo "Installing dependencies on Linux/Unix..."
+                        sh 'npm ci'
                     } else {
-                        echo "Running on Linux/Unix"
-                        sh './build.sh'
+                        echo "Installing dependencies on Windows..."
+                        bat 'npm ci'
+                    }
+                }
+            }
+        }
+
+        stage('Lint') {
+            steps {
+                script {
+                    if (isUnix()) {
+                        sh 'npm run lint || true' // don't fail if lint warnings
+                    } else {
+                        bat 'npm run lint || exit 0'
                     }
                 }
             }
@@ -24,12 +44,47 @@ pipeline {
             steps {
                 script {
                     if (isUnix()) {
-                        sh 'echo "Running tests on Linux"'
+                        sh 'npm test'
                     } else {
-                        bat 'echo Running tests on Windows'
+                        bat 'npm test'
                     }
                 }
             }
+        }
+
+        stage('Build') {
+            steps {
+                script {
+                    if (isUnix()) {
+                        sh 'npm run build'
+                    } else {
+                        bat 'npm run build'
+                    }
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    if (isUnix()) {
+                        sh 'echo "Deploying on Linux environment..."'
+                        // Example: sh './deploy.sh'
+                    } else {
+                        bat 'echo Deploying on Windows environment...'
+                        // Example: bat 'deploy.bat'
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ Pipeline completed successfully!'
+        }
+        failure {
+            echo '❌ Pipeline failed. Please check the logs.'
         }
     }
 }
