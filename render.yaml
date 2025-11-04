@@ -1,0 +1,16 @@
+# Exported from Render on 2025-11-04T11:13:55Z
+version: "1"
+projects:
+- name: My project
+  environments:
+  - name: Production
+    databases:
+    - name: a6cars-db
+      databaseName: a6cars_db
+      user: root
+      plan: free
+      region: singapore
+      ipAllowList:
+      - source: 0.0.0.0/0
+        description: everywhere
+      postgresMajorVersion: "17"
