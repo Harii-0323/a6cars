@@ -2,56 +2,59 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Register | A6 Cars</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 flex justify-center items-center h-screen">
 
-<div class="bg-white p-8 rounded shadow-lg w-96">
-  <h2 class="text-2xl font-bold mb-6 text-center">Register</h2>
-  <form id="registerForm" class="space-y-4">
-    <input type="text" name="name" placeholder="Name" required class="w-full p-2 border rounded">
-    <input type="email" name="email" placeholder="Email" required class="w-full p-2 border rounded">
-    <input type="text" name="phone" placeholder="Phone" required class="w-full p-2 border rounded">
-    <input type="password" name="password" placeholder="Password" required class="w-full p-2 border rounded">
-    <button type="submit" class="bg-blue-600 text-white w-full p-2 rounded hover:bg-blue-700 transition">Register</button>
-  </form>
-</div>
+  <div class="bg-white p-8 rounded shadow-lg w-96">
+    <h2 class="text-2xl font-bold mb-6 text-center text-blue-700">Create an Account</h2>
+    <form id="registerForm" class="space-y-4">
+      <input type="text" name="name" placeholder="Full Name" required class="w-full p-2 border rounded focus:outline-blue-500">
+      <input type="email" name="email" placeholder="Email" required class="w-full p-2 border rounded focus:outline-blue-500">
+      <input type="text" name="phone" placeholder="Phone Number" required class="w-full p-2 border rounded focus:outline-blue-500">
+      <input type="password" name="password" placeholder="Password" required class="w-full p-2 border rounded focus:outline-blue-500">
+      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white w-full p-2 rounded">Register</button>
+    </form>
+    <p class="text-center text-sm text-gray-600 mt-4">
+      Already have an account?
+      <a href="/login.html" class="text-blue-600 hover:underline">Login here</a>
+    </p>
+  </div>
 
-<script>
-document.getElementById('registerForm').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const data = Object.fromEntries(new FormData(this).entries());
+  <script>
+    document.getElementById('registerForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(this).entries());
 
-  try {
-    const res = await fetch('https://a6cars-backend.onrender.com/api/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+      try {
+        // Determine backend URL automatically
+        const BACKEND_URL = 'https://a6cars-backend.onrender.com';
+        const api = path => (location.hostname === 'localhost' ? path : BACKEND_URL + path);
+
+        const res = await fetch(api('/api/register'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const text = await res.text();
+        let json = {};
+        try { json = text ? JSON.parse(text) : {}; } catch (e) {}
+
+        if (!res.ok) {
+          alert(json.message || text || 'Registration failed');
+          return;
+        }
+
+        alert(json.message || 'Registered successfully!');
+        window.location.href = '/login.html';
+      } catch (err) {
+        alert('Registration failed: ' + (err.message || 'Network error'));
+      }
     });
-
-    // Try parsing response as JSON safely
-    const responseText = await res.text();
-    let json = {};
-    try {
-      json = responseText ? JSON.parse(responseText) : {};
-    } catch {
-      console.warn('Response was not valid JSON:', responseText);
-    }
-
-    if (!res.ok) {
-      alert(json.message || json.error || 'Registration failed');
-      return;
-    }
-
-    alert(json.message || 'Registered successfully!');
-    window.location.href = '/login.html';
-
-  } catch (err) {
-    alert('Registration failed: ' + (err.message || 'Network error'));
-  }
-});
-</script>
+  </script>
 
 </body>
 </html>
