@@ -1,78 +1,74 @@
-<nav class="bg-blue-600 p-4 text-white fixed top-0 left-0 right-0 z-50 flex justify-between items-center">
-  <div class="font-bold text-xl">A6 Cars</div>
-  <div id="nav-user" class="ml-4 hidden">&nbsp;</div>
-  <div class="flex space-x-4">
-    <a id="nav-home" href="/index.html" class="hover:text-gray-200">Home</a>
-    <a id="nav-book" href="/booking.html" class="hover:text-gray-200">Book</a>
-    <a id="nav-history" href="/history.html" class="hover:text-gray-200">History</a>
-    <a id="nav-admin" href="/admin.html" class="hover:text-gray-200" style="display:none">Admin</a>
-  <button id="nav-logout" type="button" class="hover:text-gray-200">Logout</button>
+<!-- ✅ navbar.html -->
+<nav class="bg-blue-700 text-white fixed top-0 left-0 right-0 z-50 shadow-lg">
+  <div class="max-w-6xl mx-auto flex justify-between items-center px-6 py-3">
+    <a href="/index.html" class="text-2xl font-bold tracking-wide">A6 Cars</a>
+
+    <ul class="flex space-x-6 items-center">
+      <li><a href="/index.html" id="nav-home" class="hover:text-gray-300">Home</a></li>
+      <li><a href="/booking.html" id="nav-book" class="hover:text-gray-300">Book Car</a></li>
+      <li><a href="/history.html" id="nav-history" class="hover:text-gray-300">History</a></li>
+      <li><a href="/admin.html" id="nav-admin" class="hover:text-gray-300 hidden">Admin</a></li>
+      <li id="nav-user" class="hidden font-semibold"></li>
+      <li>
+        <button id="nav-logout"
+          class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-white hidden">
+          Logout
+        </button>
+      </li>
+      <li id="nav-auth" class="flex space-x-2">
+        <a href="/login.html" class="bg-white text-blue-700 px-3 py-1 rounded hover:bg-gray-100">Login</a>
+        <a href="/register.html" class="bg-blue-500 px-3 py-1 rounded hover:bg-blue-600">Register</a>
+      </li>
+    </ul>
   </div>
 </nav>
 
-<!-- navbar behaviour  is wired by each page after insertion (scripts in fetched HTML
-     do not execute reliably). -->
-
 <script>
-  // Optional session debug overlay: append ?debug_session=1 to any URL to show
-  // current sessionStorage and localStorage contents for debugging in the browser.
-  try {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('debug_session') === '1') {
-      const overlay = document.createElement('div');
-      overlay.style.position = 'fixed';
-      overlay.style.right = '12px';
-      overlay.style.bottom = '12px';
-      overlay.style.zIndex = '99999';
-      overlay.style.maxWidth = '420px';
-      overlay.style.maxHeight = '60vh';
-      overlay.style.overflow = 'auto';
-      overlay.style.background = 'rgba(0,0,0,0.85)';
-      overlay.style.color = 'white';
-      overlay.style.fontSize = '12px';
-      overlay.style.padding = '12px';
-      overlay.style.borderRadius = '8px';
-      const close = document.createElement('button');
-      close.innerText = '×';
-      close.style.cssText = 'position:absolute;right:6px;top:6px;background:transparent;border:0;color:white;font-size:18px;cursor:pointer;';
-      overlay.appendChild(close);
-      const title = document.createElement('div');
-      title.innerHTML = '<strong>Session Debug</strong><div style="font-size:11px;color:#ccc;margin-bottom:8px">localStorage & sessionStorage</div>';
-      overlay.appendChild(title);
-      const ls = document.createElement('pre');
-      ls.style.whiteSpace = 'pre-wrap';
-      try { ls.innerText = 'localStorage:\n' + JSON.stringify(Object.fromEntries(Object.keys(localStorage).map(k=>[k, localStorage.getItem(k)])), null, 2); } catch(e){ ls.innerText = 'localStorage: <error>'; }
-      const ss = document.createElement('pre');
-      ss.style.whiteSpace = 'pre-wrap';
-      try { ss.innerText = '\nsessionStorage:\n' + JSON.stringify(Object.fromEntries(Object.keys(sessionStorage).map(k=>[k, sessionStorage.getItem(k)])), null, 2); } catch(e){ ss.innerText = 'sessionStorage: <error>'; }
-      overlay.appendChild(ls);
-      overlay.appendChild(ss);
-      close.onclick = () => overlay.remove();
-      document.body.appendChild(overlay);
-    }
-  } catch(e) {}
-</script>
+  // 🧠 Dynamic navbar setup
+  document.addEventListener('DOMContentLoaded', () => {
+    try {
+      const customerId = localStorage.getItem('customer_id');
+      const customerName = localStorage.getItem('customer_name');
+      const adminLogged = sessionStorage.getItem('adminLoggedIn');
 
-<script>
-  // Wire up logout and display username whenever the navbar is injected
-  try {
-    const showSession = () => {
-      try {
-        const name = localStorage.getItem('customer_name');
-        const userEl = document.getElementById('nav-user');
-        if (name && userEl) { userEl.innerText = 'Hello, ' + name; userEl.classList.remove('hidden'); }
-        const logoutBtn = document.getElementById('nav-logout');
-        if (logoutBtn) {
-          logoutBtn.onclick = () => {
-            // clear full session storage and redirect to login
-            try { localStorage.removeItem('customer_id'); localStorage.removeItem('customer_name'); localStorage.removeItem('auth_token'); } catch(e) {}
-            try { sessionStorage.removeItem('adminLoggedIn'); } catch(e) {}
-            window.location.href = '/login.html';
-          };
+      const userEl = document.getElementById('nav-user');
+      const logoutBtn = document.getElementById('nav-logout');
+      const authLinks = document.getElementById('nav-auth');
+      const adminLink = document.getElementById('nav-admin');
+
+      if (customerId || adminLogged) {
+        // Hide login/register links
+        authLinks.classList.add('hidden');
+        logoutBtn.classList.remove('hidden');
+        if (userEl && customerName) {
+          userEl.innerText = `Hello, ${customerName}`;
+          userEl.classList.remove('hidden');
         }
-      } catch(e) { /* ignore */ }
-    };
-    // run immediately and also once after a short delay (since pages inject navbar HTML)
-    showSession(); setTimeout(showSession, 200);
-  } catch(e) {}
+
+        if (adminLogged) {
+          adminLink.classList.remove('hidden');
+          document.getElementById('nav-book').classList.add('hidden');
+          document.getElementById('nav-history').classList.add('hidden');
+          document.getElementById('nav-home').classList.add('hidden');
+        }
+      } else {
+        // Not logged in
+        authLinks.classList.remove('hidden');
+        logoutBtn.classList.add('hidden');
+        if (userEl) userEl.classList.add('hidden');
+      }
+
+      // Logout clears all session data
+      logoutBtn.addEventListener('click', () => {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('customer_id');
+        localStorage.removeItem('customer_name');
+        sessionStorage.removeItem('adminLoggedIn');
+        window.location.href = '/login.html';
+      });
+
+    } catch (err) {
+      console.error('Navbar setup error:', err);
+    }
+  });
 </script>
