@@ -8,31 +8,47 @@
 </head>
 <body class="bg-gray-100 p-6">
 
+<!-- ✅ Navbar -->
 <div id="navbar"></div>
-
 <script>
-  fetch('https://a6cars-backend.onrender.com/api/history')
+  // Load local navbar file
+  fetch('/navbar.html')
     .then(res => res.text())
-    .then(html => { document.getElementById('navbar').innerHTML = html; setupNavbar(); });
+    .then(html => { document.getElementById('navbar').innerHTML = html; setupNavbar(); })
+    .catch(() => console.error('Navbar load failed'));
 </script>
 
 <script>
 function setupNavbar(){
-  try{
+  try {
     const logoutBtn = document.getElementById('nav-logout');
-  if(logoutBtn) logoutBtn.onclick = ()=>{ localStorage.removeItem('customer_id'); window.location.href='/signup.html'; };
+    if (logoutBtn) logoutBtn.onclick = () => {
+      localStorage.removeItem('customer_id');
+      localStorage.removeItem('customer_name');
+      localStorage.removeItem('auth_token');
+      sessionStorage.removeItem('adminLoggedIn');
+      window.location.href = '/login.html';
+    };
+
     const adminLink = document.getElementById('nav-admin');
     const isAdmin = !!sessionStorage.getItem('adminLoggedIn');
-  if(isAdmin){ if(adminLink) adminLink.style.display='inline'; document.getElementById('nav-book').style.display='none'; document.getElementById('nav-history').style.display='none'; document.getElementById('nav-home').style.display='none'; }
-    else { if(adminLink) adminLink.style.display='none'; }
-  }catch(e){}
+    if (isAdmin) {
+      if (adminLink) adminLink.style.display = 'inline';
+      document.getElementById('nav-book').style.display = 'none';
+      document.getElementById('nav-history').style.display = 'none';
+      document.getElementById('nav-home').style.display = 'none';
+    } else {
+      if (adminLink) adminLink.style.display = 'none';
+    }
+  } catch (e) {}
 }
-setTimeout(setupNavbar,120);
+setTimeout(setupNavbar, 120);
 </script>
 
-<!-- spacer for fixed navbar -->
+<!-- Spacer for fixed navbar -->
 <div class="h-20"></div>
 
+<!-- Title -->
 <div class="flex justify-center">
   <div class="bg-white p-6 rounded shadow w-3/4 text-center">
     <h1 class="text-3xl font-bold text-blue-700 mb-2">Booking History</h1>
@@ -40,9 +56,8 @@ setTimeout(setupNavbar,120);
   </div>
 </div>
 
-<div id="history" class="space-y-6 max-w-4xl mx-auto">
-  <!-- Booking cards appear here -->
-</div>
+<!-- History list -->
+<div id="history" class="space-y-6 max-w-4xl mx-auto"></div>
 
 <script>
 const customer_id = localStorage.getItem('customer_id');
@@ -50,20 +65,33 @@ if (!customer_id) {
   window.location.href = '/login.html';
 }
 
-fetch(`/api/history/${customer_id}`)
+// ✅ Backend URL
+const BACKEND_URL = 'https://a6cars-backend.onrender.com';
+
+// ✅ Fetch user's booking history
+fetch(`${BACKEND_URL}/api/history/${customer_id}`)
   .then(res => res.json())
   .then(data => {
     const container = document.getElementById('history');
+
+    if (!Array.isArray(data) || data.length === 0) {
+      container.innerHTML = '<p class="text-center text-gray-600">No bookings found.</p>';
+      return;
+    }
+
     data.forEach(booking => {
       const div = document.createElement('div');
       div.className = 'p-4 bg-white shadow rounded-lg';
       div.innerHTML = `
         <h3 class="text-xl font-semibold">${booking.brand} ${booking.model} (${booking.year})</h3>
-        <p>From: ${booking.start_date} To: ${booking.end_date}</p>
-        <p>Location: ${booking.location}</p>
+        <p><strong>From:</strong> ${booking.start_date} &nbsp;&nbsp; <strong>To:</strong> ${booking.end_date}</p>
+        <p><strong>Location:</strong> ${booking.location}</p>
       `;
       container.appendChild(div);
     });
+  })
+  .catch(err => {
+    document.getElementById('history').innerHTML = `<p class="text-center text-red-600">Error loading history: ${err.message}</p>`;
   });
 </script>
 
