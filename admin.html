@@ -208,9 +208,10 @@ document.getElementById('addCarForm').addEventListener('submit', function(e) {
   const formData = new FormData(this);
   const data = Object.fromEntries(formData.entries());
 
-  fetch('/api/addcar', {
+  // Admin endpoint requires authorization and the server route is /api/admin/addcar
+  fetch('/api/admin/addcar', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getAdminToken() },
     body: JSON.stringify(data)
   })
   .then(res => res.json())
@@ -234,7 +235,8 @@ document.getElementById('admin-login-btn').addEventListener('click', function() 
     fetch('/api/admin/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id, password: pass })
+    // server expects `email` and `password` — send `email` instead of `id`
+    body: JSON.stringify({ email: id, password: pass })
   }).then(res => {
     if (res.ok) return res.json();
     return res.json().then(j => { throw new Error(j.message || 'Login failed'); });

@@ -22,7 +22,8 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
   const data = Object.fromEntries(new FormData(this).entries());
 
   try {
-    const res = await fetch('https://a6cars-backend.onrender.com/api/login', {
+    // use relative URL so local/dev server is used when running locally
+    const res = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
