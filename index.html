@@ -1,59 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Home | A6 Cars</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>A6 Cars | Home</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 p-6">
 
-<div id="navbar"></div>
-<script>
-  fetch('/navbar.html').then(res => res.text()).then(html => { document.getElementById('navbar').innerHTML = html; setupNavbar(); });
-</script>
+<body class="bg-gray-100">
 
-<script>
-function setupNavbar(){
-  try{
-    const logoutBtn = document.getElementById('nav-logout');
-  if(logoutBtn) logoutBtn.onclick = ()=>{ localStorage.removeItem('customer_id'); localStorage.removeItem('customer_name'); window.location.href='/signup.html'; };
-    const adminLink = document.getElementById('nav-admin');
-    // if admin session present, show admin only and hide book/history
-    const isAdmin = !!sessionStorage.getItem('adminLoggedIn');
-  if(isAdmin){ if(adminLink) adminLink.style.display='inline'; document.getElementById('nav-book').style.display='none'; document.getElementById('nav-history').style.display='none'; document.getElementById('nav-home').style.display='none'; }
-    else { if(adminLink) adminLink.style.display='none'; }
-    // show customer name when logged in
-    try { const name = localStorage.getItem('customer_name'); const user = document.getElementById('nav-user'); if (name && user) { user.innerText = 'Hello, ' + name; user.classList.remove('hidden'); } } catch(e){}
-  }catch(e){}
-}
-// run after navbar loads
-setTimeout(setupNavbar,120);
-</script>
+  <!-- ✅ Navbar -->
+  <div id="navbar"></div>
+  <script>
+    fetch('/navbar.html')
+      .then(res => res.text())
+      .then(html => document.getElementById('navbar').innerHTML = html)
+      .catch(() => console.error('Navbar load failed'));
+  </script>
 
-<script>
-  // if not logged in (no customer_id) redirect to signup landing
-  try {
-  const cid = localStorage.getItem('customer_id');
-  const admin = sessionStorage.getItem('adminLoggedIn');
-  if (admin) { window.location.href = '/admin.html'; }
-  if (!cid && !admin) window.location.href = '/signup.html';
-  } catch(e){}
-</script>
+  <!-- Spacer for fixed navbar -->
+  <div class="h-20"></div>
 
-<!-- spacer for fixed navbar -->
-<div class="h-20"></div>
-
-<div class="flex justify-center mt-6">
-  <div class="bg-white p-6 rounded shadow w-2/3 text-center">
-  <h1 class="text-3xl font-bold text-blue-700">Welcome to A6 Cars!</h1>
-    <p class="mt-2 text-gray-600">Find and book cars in a few clicks.</p>
-    <div class="mt-4">
-      <a href="/booking.html" class="bg-blue-600 text-white px-4 py-2 rounded">Start Booking</a>
+  <!-- ✅ Hero Section -->
+  <section class="relative bg-blue-700 text-white text-center py-24 px-6">
+    <h1 class="text-4xl md:text-5xl font-bold mb-4">Welcome to A6 Cars</h1>
+    <p class="text-lg md:text-xl mb-6">Fast, Reliable & Affordable Car Rentals – Anytime, Anywhere</p>
+    <div class="space-x-4">
+      <a href="/booking.html"
+        class="bg-white text-blue-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-200 transition">
+        Book a Car
+      </a>
+      <a href="/login.html"
+        class="bg-blue-500 px-6 py-3 rounded-lg font-semibold hover:bg-blue-600 transition">
+        Login
+      </a>
     </div>
-  </div>
-</div>
-</h1>
+  </section>
 
-<!-- registration moved to landing page -->
+  <!-- ✅ Features Section -->
+  <section class="py-16 px-8 max-w-6xl mx-auto">
+    <h2 class="text-3xl font-bold text-center text-blue-700 mb-12">Why Choose A6 Cars?</h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div class="bg-white p-6 rounded-lg shadow text-center">
+        <img src="https://cdn-icons-png.flaticon.com/512/2331/2331970.png" class="w-20 mx-auto mb-4" alt="Variety of Cars">
+        <h3 class="text-xl font-semibold mb-2">Wide Range of Cars</h3>
+        <p class="text-gray-600">Choose from economy to luxury – we have vehicles for every occasion and budget.</p>
+      </div>
+
+      <div class="bg-white p-6 rounded-lg shadow text-center">
+        <img src="https://cdn-icons-png.flaticon.com/512/2991/2991112.png" class="w-20 mx-auto mb-4" alt="Affordable">
+        <h3 class="text-xl font-semibold mb-2">Affordable Rates</h3>
+        <p class="text-gray-600">Enjoy transparent pricing with no hidden costs and exclusive online discounts.</p>
+      </div>
+
+      <div class="bg-white p-6 rounded-lg shadow text-center">
+        <img src="https://cdn-icons-png.flaticon.com/512/463/463574.png" class="w-20 mx-auto mb-4" alt="Support">
+        <h3 class="text-xl font-semibold mb-2">24/7 Support</h3>
+        <p class="text-gray-600">Our dedicated team is always available to assist you with bookings and queries.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ✅ Call to Action Section -->
+  <section class="bg-blue-600 text-white text-center py-16">
+    <h2 class="text-3xl font-bold mb-4">Ready to Ride?</h2>
+    <p class="text-lg mb-6">Book your favorite car today and enjoy a smooth, hassle-free experience.</p>
+    <a href="/booking.html" class="bg-white text-blue-700 px-8 py-3 rounded-lg font-semibold hover:bg-gray-200 transition">
+      Book Now
+    </a>
+  </section>
+
+  <!-- ✅ Footer -->
+  <footer class="bg-gray-800 text-white py-6 text-center">
+    <p>&copy; 2025 A6 Cars. All Rights Reserved.</p>
+    <p class="text-sm text-gray-400 mt-2">Designed and developed by <b>Karike Harikrishna</b></p>
+  </footer>
+
 </body>
 </html>
