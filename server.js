@@ -24,14 +24,29 @@ app.use(cors({
 }));
 
 // ===== PostgreSQL Database Connection =====
-const db = new Pool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  database: process.env.DB_NAME,
-  port: process.env.DB_PORT || 5432,
-  ssl: { rejectUnauthorized: false } // required by Render PostgreSQL
-});
+// Prefer a single DATABASE_URL (connection string) if provided, otherwise
+// fall back to individual DB_* environment variables. Always enable
+// ssl.rejectUnauthorized=false for Render-managed Postgres compatibility.
+let poolConfig;
+if (process.env.DATABASE_URL) {
+  // Only enable SSL for non-local hosts (Render DB). Local URLs (localhost/127.0.0.1)
+  // typically do not support SSL.
+  const useSsl = !/localhost|127\.0\.0\.1/.test(process.env.DATABASE_URL);
+  poolConfig = { connectionString: process.env.DATABASE_URL };
+  if (useSsl) poolConfig.ssl = { rejectUnauthorized: false };
+} else {
+  const useSsl = process.env.DB_HOST && !/localhost|127\.0\.0\.1/.test(process.env.DB_HOST);
+  poolConfig = {
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT || 5432,
+  };
+  poolConfig.ssl = useSsl ? { rejectUnauthorized: false } : false;
+}
+
+const db = new Pool(poolConfig);
 
 db.connect()
   .then(() => console.log('✅ Connected to PostgreSQL database'))

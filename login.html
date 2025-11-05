@@ -43,10 +43,15 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
       return;
     }
 
-    // ✅ Save token & email for session use (if present)
+    // ✅ Save token & user info for session use (if present)
     if (json.token) {
       localStorage.setItem('auth_token', json.token);
       localStorage.setItem('email', data.email);
+    }
+    // store customer id/name so booking page stays logged in until explicit logout
+    if (json.user) {
+      localStorage.setItem('customer_id', String(json.user.id));
+      localStorage.setItem('customer_name', json.user.name || json.user.email || data.email);
     }
 
     alert(json.message || 'Login successful');
