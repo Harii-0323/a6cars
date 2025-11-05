@@ -2,66 +2,64 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Login | A6 Cars</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 flex justify-center items-center h-screen">
 
-<div class="bg-white p-8 rounded shadow-lg w-96">
-  <h2 class="text-2xl font-bold mb-6 text-center">Login</h2>
-  <form id="loginForm" class="space-y-4">
-    <input type="email" name="email" placeholder="Email" required class="w-full p-2 border rounded">
-    <input type="password" name="password" placeholder="Password" required class="w-full p-2 border rounded">
-    <button type="submit" class="bg-blue-600 text-white w-full p-2 rounded">Login</button>
-  </form>
-</div>
+  <div class="bg-white p-8 rounded shadow-lg w-96">
+    <h2 class="text-2xl font-bold mb-6 text-center text-blue-700">Login to A6 Cars</h2>
+    <form id="loginForm" class="space-y-4">
+      <input type="email" name="email" placeholder="Email" required class="w-full p-2 border rounded focus:outline-blue-500">
+      <input type="password" name="password" placeholder="Password" required class="w-full p-2 border rounded focus:outline-blue-500">
+      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white w-full p-2 rounded">Login</button>
+    </form>
+    <p class="text-center text-sm text-gray-600 mt-4">
+      Don't have an account? 
+      <a href="/register.html" class="text-blue-600 hover:underline">Register here</a>
+    </p>
+  </div>
 
-<script>
-document.getElementById('loginForm').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const data = Object.fromEntries(new FormData(this).entries());
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(this).entries());
 
-  try {
-    // API base helper: if running on localhost use relative path, otherwise use deployed backend URL
-    const BACKEND_URL = 'https://a6cars-backend.onrender.com';
-    function api(path){ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return path; return BACKEND_URL + path; }
+      try {
+        // Determine backend API URL dynamically
+        const BACKEND_URL = 'https://a6cars-backend.onrender.com';
+        const api = path => (location.hostname === 'localhost' ? path : BACKEND_URL + path);
 
-    const res = await fetch(api('/api/login'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+        const res = await fetch(api('/api/login'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+
+        const text = await res.text();
+        let json = {};
+        try { json = text ? JSON.parse(text) : {}; } catch (e) { }
+
+        if (!res.ok) {
+          alert(json.message || text || 'Login failed');
+          return;
+        }
+
+        // ✅ Save login details locally
+        if (json.token) localStorage.setItem('auth_token', json.token);
+        if (json.user) {
+          localStorage.setItem('customer_id', String(json.user.id));
+          localStorage.setItem('customer_name', json.user.name || json.user.email || data.email);
+        }
+
+        alert(json.message || 'Login successful!');
+        window.location.href = '/booking.html';
+      } catch (err) {
+        alert('Login failed: ' + (err.message || 'Network error'));
+      }
     });
-
-    // Some responses may be empty or plain text (esp. on 4xx/5xx). Read as text and try to parse JSON safely.
-    const text = await res.text();
-    let json = {};
-    try { json = text ? JSON.parse(text) : {}; } catch (e) { /* non-JSON response */ }
-
-    if (!res.ok) {
-      // show any message returned, else the raw text, else a generic message
-      alert(json.message || text || 'Login failed');
-      return;
-    }
-
-    // ✅ Save token & user info for session use (if present)
-    if (json.token) {
-      localStorage.setItem('auth_token', json.token);
-      localStorage.setItem('email', data.email);
-    }
-    // store customer id/name so booking page stays logged in until explicit logout
-    if (json.user) {
-      localStorage.setItem('customer_id', String(json.user.id));
-      localStorage.setItem('customer_name', json.user.name || json.user.email || data.email);
-    }
-
-    alert(json.message || 'Login successful');
-    window.location.href = '/booking.html';
-
-  } catch (err) {
-    alert('Login failed: ' + (err.message || 'Network error'));
-  }
-});
-</script>
+  </script>
 
 </body>
 </html>
