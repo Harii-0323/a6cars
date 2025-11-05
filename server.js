@@ -84,7 +84,8 @@ app.post('/api/login', async (req, res) => {
       { expiresIn: '2h' }
     );
 
-    res.json({ message: 'Login successful', token });
+    // Return token plus minimal user info so frontends can store customer id/name locally
+    res.json({ message: 'Login successful', token, user: { id: user.id, name: user.name, email: user.email } });
   } catch (err) {
     console.error('Login Error:', err);
     res.status(500).json({ error: err.message });
