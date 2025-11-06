@@ -1,5 +1,5 @@
 // ================== A6 Cars Backend ==================
-// Technologies: Node.js + Express + PostgreSQL + JWT + Render Ready
+// Technologies: Node.js + Express + PostgreSQL + JWT + Multer (Image Upload) + Render Ready
 
 require('dotenv').config();
 const express = require('express');
@@ -8,17 +8,20 @@ const bodyParser = require('body-parser');
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const path = require('path');
 
 const app = express();
 
 // ==================== MIDDLEWARE ====================
 app.use(bodyParser.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve uploaded images
 
-// ✅ CORS setup — allow frontend and local dev
+// ✅ CORS setup
 app.use(
   cors({
     origin: [
-      "https://a6cars-frontend-4i84.onrender.com", // ✅ Deployed frontend
+      "https://a6cars-frontend-4i84.onrender.com",
       "http://localhost:3000",
       "http://127.0.0.1:5500"
     ],
@@ -30,16 +33,39 @@ app.use(
 // ==================== DATABASE CONNECTION ====================
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false } // Required for Render PostgreSQL
+  ssl: { rejectUnauthorized: false }
 });
 
 pool.connect()
   .then(() => console.log("✅ Connected to PostgreSQL database"))
   .catch(err => console.error("❌ Database connection failed:", err.message));
 
+// ==================== MULTER CONFIG (Image Upload) ====================
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, 'uploads'));
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = /jpeg|jpg/;
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (allowedTypes.test(ext)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only .jpg files are allowed!'), false);
+  }
+};
+
+const upload = multer({ storage, fileFilter });
+
 // ==================== ROOT CHECK ====================
 app.get('/', (req, res) => {
-  res.send('🚗 A6 Cars Rental API (PostgreSQL) is running successfully!');
+  res.send('🚗 A6 Cars Rental API (PostgreSQL) + Image Upload is running!');
 });
 
 // ==================== USER REGISTRATION ====================
@@ -98,11 +124,7 @@ app.post('/api/login', async (req, res) => {
     res.json({
       message: '✅ Login successful!',
       token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email
-      }
+      user: { id: user.id, name: user.name, email: user.email }
     });
   } catch (error) {
     console.error('❌ Login Error:', error);
@@ -114,7 +136,6 @@ app.post('/api/login', async (req, res) => {
 app.post('/api/admin/login', async (req, res) => {
   const { email, password } = req.body;
 
-  // Static admin credentials (temporary)
   const ADMIN_EMAIL = "admin@a6cars.com";
   const ADMIN_PASSWORD = "admin123";
 
@@ -140,51 +161,25 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
-// ==================== ADD CAR (ADMIN) ====================
-app.post('/api/admin/addcar', async (req, res) => {
-  const { brand, model, year, daily_rate, location, image_url } = req.body;
+// ==================== ADD CAR (with Image Upload) ====================
+app.post('/api/admin/addcar', upload.single('image'), async (req, res) => {
+  const { brand, model, year, daily_rate, location } = req.body;
 
-  if (!brand || !model || !year || !daily_rate) {
-    return res.status(400).json({ message: 'All required fields must be filled.' });
+  if (!brand || !model || !year || !daily_rate || !location) {
+    return res.status(400).json({ message: 'All fields are required.' });
   }
+
+  const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
 
   try {
     await pool.query(
       'INSERT INTO cars (brand, model, year, daily_rate, location, image_url) VALUES ($1, $2, $3, $4, $5, $6)',
-      [brand, model, year, daily_rate, location, image_url]
+      [brand, model, year, daily_rate, location, imagePath]
     );
-    res.json({ message: '✅ Car added successfully!' });
+    res.json({ message: '✅ Car added successfully with image!' });
   } catch (error) {
     console.error('❌ Error adding car:', error);
     res.status(500).json({ message: 'Server error while adding car.' });
-  }
-});
-
-// ==================== TEST PROTECTED ROUTE ====================
-app.get('/api/protected', async (req, res) => {
-  const authHeader = req.headers['authorization'];
-  if (!authHeader) return res.status(401).json({ message: 'Authorization token missing.' });
-
-  const token = authHeader.split(' ')[1];
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret123');
-    res.json({ message: 'Protected route accessed successfully!', user: decoded });
-  } catch (error) {
-    res.status(403).json({ message: 'Invalid or expired token.' });
-  }
-});
-
-// ==================== DATABASE TEST ROUTE ====================
-app.get('/api/testdb', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT NOW() AS current_time');
-    res.json({
-      message: '✅ Database connection is working!',
-      time: result.rows[0].current_time
-    });
-  } catch (err) {
-    console.error('❌ Database test failed:', err);
-    res.status(500).json({ message: 'Database test failed', error: err.message });
   }
 });
 
