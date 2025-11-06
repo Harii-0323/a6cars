@@ -12,47 +12,47 @@ const QRCode = require('qrcode');
 const app = express();
 app.use(cors());
 app.use(express.json());
-
-// ✅ Serve uploaded images
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ✅ PostgreSQL connection
+// ============================================================
+// DATABASE CONNECTION
+// ============================================================
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://root:password@localhost:5432/a6cars_db',
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
-// ✅ Multer setup
+// ============================================================
+// MULTER SETUP
+// ============================================================
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: function (req, file, cb) {
     const dir = path.join(__dirname, 'uploads');
     if (!fs.existsSync(dir)) fs.mkdirSync(dir);
     cb(null, dir);
   },
-  filename: (req, file, cb) => {
+  filename: function (req, file, cb) {
     const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
     cb(null, unique + path.extname(file.originalname));
   }
 });
-
 const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    if (ext !== '.jpg' && ext !== '.jpeg') {
-      return cb(new Error('Only .jpg or .jpeg allowed'));
-    }
+    if (ext !== '.jpg' && ext !== '.jpeg') return cb(new Error('Only .jpg or .jpeg allowed'));
     cb(null, true);
   }
 });
 
 // ============================================================
-// 🧩 Admin and Security
+// ADMIN SETTINGS
 // ============================================================
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'karikeharikrishna@gmail.com';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Anu';
 const JWT_SECRET = process.env.JWT_SECRET || 'secretkey123';
 
+// JWT Verification
 function verifyToken(req, res, next) {
   const header = req.headers['authorization'];
   if (!header) return res.status(401).json({ message: 'Missing token' });
@@ -65,14 +65,12 @@ function verifyToken(req, res, next) {
 }
 
 // ============================================================
-// 🏠 Root
+// ROOT
 // ============================================================
-app.get('/', (req, res) => {
-  res.send('🚗 A6 Cars API running successfully!');
-});
+app.get('/', (req, res) => res.send('🚗 A6 Cars API running successfully!'));
 
 // ============================================================
-// 👤 Customer Registration & Login
+// CUSTOMER AUTH
 // ============================================================
 app.post('/api/register', async (req, res) => {
   const { name, email, phone, password } = req.body;
@@ -80,16 +78,15 @@ app.post('/api/register', async (req, res) => {
     return res.status(400).json({ message: 'All fields required' });
 
   try {
-    const existing = await pool.query('SELECT * FROM customers WHERE email=$1', [email]);
-    if (existing.rows.length) return res.status(400).json({ message: 'Email already registered' });
+    const exists = await pool.query('SELECT * FROM customers WHERE email=$1', [email]);
+    if (exists.rows.length > 0)
+      return res.status(400).json({ message: 'Email already registered' });
 
     const hashed = await bcrypt.hash(password, 10);
-    await pool.query('INSERT INTO customers (name, email, phone, password) VALUES ($1,$2,$3,$4)', [
-      name, email, phone, hashed
-    ]);
+    await pool.query('INSERT INTO customers (name, email, phone, password) VALUES ($1,$2,$3,$4)',
+      [name, email, phone, hashed]);
     res.json({ message: 'Registration successful!' });
   } catch (err) {
-    console.error('Registration error:', err);
     res.status(500).json({ message: 'Server error during registration' });
   }
 });
@@ -97,23 +94,19 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
   try {
-    const result = await pool.query('SELECT * FROM customers WHERE email=$1', [email]);
-    if (!result.rows.length) return res.status(400).json({ message: 'Invalid credentials' });
-
-    const user = result.rows[0];
-    const match = await bcrypt.compare(password, user.password);
+    const user = await pool.query('SELECT * FROM customers WHERE email=$1', [email]);
+    if (user.rows.length === 0) return res.status(400).json({ message: 'Invalid credentials' });
+    const match = await bcrypt.compare(password, user.rows[0].password);
     if (!match) return res.status(400).json({ message: 'Invalid credentials' });
-
-    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '2h' });
-    res.json({ message: 'Login successful', token, customer_id: user.id });
+    const token = jwt.sign({ id: user.rows[0].id, email }, JWT_SECRET, { expiresIn: '2h' });
+    res.json({ message: 'Login successful', token, customer_id: user.rows[0].id });
   } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).json({ message: 'Login failed' });
+    res.status(500).json({ message: 'Server error during login' });
   }
 });
 
 // ============================================================
-// 👨‍💼 Admin Routes
+// ADMIN ROUTES
 // ============================================================
 app.post('/api/admin/login', (req, res) => {
   const { email, password } = req.body;
@@ -121,164 +114,168 @@ app.post('/api/admin/login', (req, res) => {
     return res.status(401).json({ message: 'Invalid credentials' });
 
   const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: '2h' });
-  res.json({ token, message: 'Admin login successful' });
+  res.json({ message: 'Admin login successful', token });
 });
 
-// Add Car
+// ============================================================
+// CARS MANAGEMENT
+// ============================================================
 app.post('/api/admin/addcar', verifyToken, upload.array('images', 10), async (req, res) => {
   const client = await pool.connect();
   try {
     const { brand, model, year, daily_rate, location } = req.body;
     if (!brand || !model || !year || !daily_rate || !location)
-      return res.status(400).json({ message: 'Missing required fields' });
+      return res.status(400).json({ message: 'Missing fields' });
 
     await client.query('BEGIN');
-    const insertCar = await client.query(
+    const newCar = await client.query(
       'INSERT INTO cars (brand, model, year, daily_rate, location) VALUES ($1,$2,$3,$4,$5) RETURNING id',
       [brand, model, year, daily_rate, location]
     );
-    const carId = insertCar.rows[0].id;
-
-    const images = (req.files || []).map(file => '/uploads/' + file.filename);
-    for (const img of images) {
+    const carId = newCar.rows[0].id;
+    const imgs = (req.files || []).map(f => '/uploads/' + f.filename);
+    for (const img of imgs)
       await client.query('INSERT INTO car_images (car_id, image_url) VALUES ($1,$2)', [carId, img]);
-    }
-
     await client.query('COMMIT');
-    res.json({ message: 'Car added successfully', car_id: carId, images });
+    res.json({ message: 'Car added successfully', car_id: carId, images: imgs });
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error(err);
     res.status(500).json({ message: 'Failed to add car' });
   } finally {
     client.release();
   }
 });
 
-// Get all cars
 app.get('/api/cars', async (req, res) => {
   try {
-    const carsRes = await pool.query('SELECT * FROM cars ORDER BY id DESC');
-    const cars = carsRes.rows;
-
-    for (let car of cars) {
-      const imgs = await pool.query('SELECT image_url FROM car_images WHERE car_id=$1', [car.id]);
-      car.images = imgs.rows.map(r => r.image_url);
+    const cars = await pool.query('SELECT * FROM cars ORDER BY id DESC');
+    for (let c of cars.rows) {
+      const imgs = await pool.query('SELECT image_url FROM car_images WHERE car_id=$1', [c.id]);
+      c.images = imgs.rows.map(r => r.image_url);
     }
-
-    res.json(cars);
+    res.json(cars.rows);
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: 'Failed to fetch cars' });
   }
 });
 
-// Delete car
-app.post('/api/deletecar', verifyToken, async (req, res) => {
-  try {
-    const { car_id } = req.body;
-    if (!car_id) return res.status(400).json({ message: 'Missing car_id' });
-    await pool.query('DELETE FROM cars WHERE id=$1', [car_id]);
-    res.json({ message: 'Car deleted successfully' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Delete failed' });
-  }
-});
-
 // ============================================================
-// 🚗 Bookings & Payments
+// BOOKINGS & PAYMENTS
 // ============================================================
-
-// Create booking
 app.post('/api/book', async (req, res) => {
-  const { car_id, customer_id, start_date, end_date, amount } = req.body;
-
-  if (!car_id || !customer_id || !start_date || !end_date || !amount)
-    return res.status(400).json({ message: 'Missing booking details' });
-
   try {
-    const insert = await pool.query(
-      'INSERT INTO bookings (car_id, customer_id, start_date, end_date, amount, paid, verified) VALUES ($1,$2,$3,$4,$5,false,false) RETURNING id',
+    const { car_id, customer_id, start_date, end_date } = req.body;
+    const car = await pool.query('SELECT daily_rate FROM cars WHERE id=$1', [car_id]);
+    if (car.rows.length === 0) return res.status(404).json({ message: 'Car not found' });
+
+    const rate = parseFloat(car.rows[0].daily_rate);
+    const days = Math.max(1, (new Date(end_date) - new Date(start_date)) / (1000 * 3600 * 24));
+    const amount = rate * days;
+
+    const booking = await pool.query(
+      `INSERT INTO bookings (car_id, customer_id, start_date, end_date, amount, status)
+       VALUES ($1,$2,$3,$4,$5,'booked') RETURNING id`,
       [car_id, customer_id, start_date, end_date, amount]
     );
-    const booking_id = insert.rows[0].id;
-
-    await pool.query(
-      'INSERT INTO payments (booking_id, customer_id, amount, status) VALUES ($1,$2,$3,$4)',
-      [booking_id, customer_id, amount, 'pending']
-    );
-
-    res.json({ message: 'Booking created successfully', booking_id });
+    res.json({ message: 'Booking successful', booking_id: booking.rows[0].id });
   } catch (err) {
-    console.error('Booking error:', err);
     res.status(500).json({ message: 'Failed to create booking' });
   }
 });
 
-// Fetch bookings per car (Admin)
-app.get('/api/car-bookings/:id', verifyToken, async (req, res) => {
+// ✅ Generate Payment QR
+app.post('/api/payments/qr', async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT b.*, c.name, c.email FROM bookings b 
-       JOIN customers c ON b.customer_id=c.id 
-       WHERE b.car_id=$1 ORDER BY b.id DESC`, [req.params.id]);
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Failed to fetch bookings' });
-  }
-});
+    const { booking_id, customer_id } = req.body;
+    if (!booking_id || !customer_id)
+      return res.status(400).json({ message: 'Missing booking/customer details' });
 
-// Transactions for admin
-app.get('/api/admin/transactions', verifyToken, async (req, res) => {
-  try {
-    const { page = 1, pageSize = 20 } = req.query;
-    const offset = (page - 1) * pageSize;
-    const count = await pool.query('SELECT COUNT(*) FROM bookings');
-    const total = parseInt(count.rows[0].count);
+    const bookingRes = await pool.query(
+      `SELECT b.*, c.name FROM bookings b JOIN customers c ON b.customer_id=c.id WHERE b.id=$1 AND c.id=$2`,
+      [booking_id, customer_id]
+    );
+    if (bookingRes.rows.length === 0)
+      return res.status(404).json({ message: 'Booking not found' });
 
-    const q = `
-      SELECT b.id as payment_id, b.start_date, b.end_date, b.amount, b.paid, b.verified,
-             cu.name, cu.email, ca.brand, ca.model
-      FROM bookings b
-      JOIN customers cu ON b.customer_id = cu.id
-      JOIN cars ca ON b.car_id = ca.id
-      ORDER BY b.id DESC
-      LIMIT $1 OFFSET $2`;
-
-    const result = await pool.query(q, [pageSize, offset]);
-    res.json({ page: parseInt(page), pageSize: parseInt(pageSize), total, data: result.rows });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Failed to load transactions' });
-  }
-});
-
-// ============================================================
-// 💳 Dynamic QR Generation (UPI Payments)
-// ============================================================
-app.get('/api/payment-qr', async (req, res) => {
-  try {
-    const { amount, note } = req.query;
-    if (!amount) return res.status(400).json({ message: 'Amount required' });
-
+    const booking = bookingRes.rows[0];
+    const amount = booking.amount;
     const upiId = '8179134484@pthdfc';
-    const name = 'A6 Cars Rentals';
-    const txnNote = note || 'Car Booking Payment';
+    const txnId = 'TXN' + Date.now();
+    const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent('A6 Cars')}&am=${amount}&tn=Car%20Booking%20${booking_id}&cu=INR`;
+    const qr = await QRCode.toDataURL(upiLink);
 
-    const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name)}&am=${amount}&cu=INR&tn=${encodeURIComponent(txnNote)}`;
-    const qrDataUrl = await QRCode.toDataURL(upiLink);
+    await pool.query(
+      `INSERT INTO payments (booking_id, customer_id, amount, status, transaction_id, upi_reference)
+       VALUES ($1,$2,$3,'pending',$4,$5)`,
+      [booking_id, customer_id, amount, txnId, upiId]
+    );
 
-    res.json({ upiLink, qrImage: qrDataUrl, message: `QR generated for ₹${amount}` });
+    res.json({ message: 'Payment QR generated successfully', qr, upiLink, transactionId: txnId, amount });
   } catch (err) {
-    console.error('QR generation failed:', err);
-    res.status(500).json({ message: 'Failed to generate QR' });
+    console.error('QR Generation Error:', err);
+    res.status(500).json({ message: 'Failed to generate payment QR' });
+  }
+});
+
+// ✅ Admin verifies payment -> generate Collection QR
+app.post('/api/admin/verify-payment', verifyToken, async (req, res) => {
+  try {
+    const { booking_id } = req.body;
+    if (!booking_id) return res.status(400).json({ message: 'Booking ID required' });
+
+    // Update booking & payment as paid
+    await pool.query('UPDATE bookings SET paid=true, verified=true, status=$1 WHERE id=$2', ['paid', booking_id]);
+    await pool.query('UPDATE payments SET status=$1 WHERE booking_id=$2', ['verified', booking_id]);
+
+    // Fetch booking with details
+    const b = await pool.query(`
+      SELECT b.id, b.start_date, b.end_date, c.name, c.email, ca.brand, ca.model, ca.location
+      FROM bookings b
+      JOIN customers c ON b.customer_id=c.id
+      JOIN cars ca ON b.car_id=ca.id
+      WHERE b.id=$1
+    `, [booking_id]);
+
+    const booking = b.rows[0];
+    const qrData = JSON.stringify({
+      booking_id,
+      customer: booking.name,
+      email: booking.email,
+      car: `${booking.brand} ${booking.model}`,
+      location: booking.location,
+      from: booking.start_date,
+      to: booking.end_date
+    });
+
+    const collectionQR = await QRCode.toDataURL(qrData);
+
+    await pool.query('UPDATE bookings SET collection_qr=$1, status=$2 WHERE id=$3', [collectionQR, 'verified', booking_id]);
+
+    res.json({ message: 'Payment verified & collection QR generated', collectionQR });
+  } catch (err) {
+    console.error('Verify error:', err);
+    res.status(500).json({ message: 'Failed to verify payment' });
+  }
+});
+
+// ✅ Admin scans collection QR (customer arrives)
+app.post('/api/admin/verify-qr', verifyToken, async (req, res) => {
+  try {
+    const { qr_token } = req.body;
+    if (!qr_token) return res.status(400).json({ message: 'QR data missing' });
+
+    const data = JSON.parse(qr_token);
+    const booking_id = data.booking_id;
+    await pool.query('UPDATE bookings SET status=$1 WHERE id=$2', ['collected', booking_id]);
+    res.json({ message: `Booking ${booking_id} verified successfully. Car handed over to ${data.customer}.` });
+  } catch (err) {
+    console.error('QR Verify Error:', err);
+    res.status(500).json({ message: 'Failed to verify booking QR' });
   }
 });
 
 // ============================================================
-// 🖥️ Start Server
+// SERVER START
 // ============================================================
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
