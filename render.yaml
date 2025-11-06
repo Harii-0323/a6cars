@@ -10,8 +10,6 @@ services:
   - type: web
     name: a6cars-backend
     env: node
-    plan: free
-    region: singapore
     buildCommand: "npm install"
     startCommand: "node server.js"
     envVars:
@@ -27,7 +25,6 @@ services:
   - type: web
     name: a6cars-frontend
     env: static
-    plan: free
     staticPublishPath: frontend
     autoDeploy: true
 
