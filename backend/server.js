@@ -17,10 +17,11 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ✅ PostgreSQL connection
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://root:password@localhost:5432/a6cars_db'
+  connectionString: process.env.DATABASE_URL || 'postgresql://root:password@localhost:5432/a6cars_db',
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
-// ✅ Multer setup for .jpg/.jpeg uploads
+// ✅ Multer setup for multiple .jpg/.jpeg uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const dir = path.join(__dirname, 'uploads');
@@ -43,9 +44,11 @@ const upload = multer({
   }
 });
 
-// ✅ Admin credentials
+// ============================================================
+// 👨‍💼 STATIC ADMIN CREDENTIALS (fixed bcrypt issue)
+// ============================================================
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || '0323';
-const ADMIN_PASSWORD_HASH = bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'Anu', 10);
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Anu';
 const JWT_SECRET = process.env.JWT_SECRET || 'secretkey123';
 
 // ✅ Verify JWT Middleware
@@ -64,7 +67,6 @@ function verifyToken(req, res, next) {
 app.get('/', (req, res) => {
   res.send('🚗 A6 Cars API is running successfully!');
 });
-
 
 // ============================================================
 // 👤 CUSTOMER REGISTRATION & LOGIN
@@ -121,24 +123,19 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-
 // ============================================================
 // 👨‍💼 ADMIN ROUTES
 // ============================================================
 
-// ✅ Admin login
-app.post('/api/admin/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    if (email !== ADMIN_EMAIL) return res.status(401).json({ message: 'Invalid credentials' });
-    const valid = await bcrypt.compare(password, ADMIN_PASSWORD_HASH);
-    if (!valid) return res.status(401).json({ message: 'Invalid credentials' });
-    const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: '2h' });
-    res.json({ token });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Login failed' });
+// ✅ Admin login (fixed - no bcrypt hashing each run)
+app.post('/api/admin/login', (req, res) => {
+  const { email, password } = req.body;
+  if (email !== ADMIN_EMAIL || password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ message: 'Invalid credentials' });
   }
+
+  const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: '2h' });
+  res.json({ token, message: 'Admin login successful' });
 });
 
 // ✅ Add car with multiple images
