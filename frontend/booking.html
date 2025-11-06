@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Book a Car | A6 Cars</title>
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Flatpickr (Date Picker) -->
+  <!-- Flatpickr (for date selection) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
-  <!-- Swiper (Carousel for Images) -->
+  <!-- Swiper (for image carousel) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 </head>
@@ -22,7 +22,6 @@
   <div id="navbar"></div>
 
   <script>
-    // ✅ Backend URL setup
     const BACKEND_URL =
       (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
         ? "http://localhost:5000"
@@ -50,42 +49,39 @@
 
   <div class="h-20"></div>
 
-  <!-- Title -->
   <div class="flex justify-center mb-6">
     <div class="bg-white p-6 rounded shadow w-3/4 text-center">
       <h1 class="text-3xl font-bold text-blue-700 mb-2">Book Your Car</h1>
-      <p class="text-gray-600 mb-4">Select a car and choose your preferred rental dates</p>
+      <p class="text-gray-600 mb-4">Choose your car and scan the QR to pay instantly</p>
     </div>
   </div>
 
-  <!-- Cars Container -->
+  <!-- Car listing -->
   <div id="cars" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-6 pb-10"></div>
 
   <script>
     const customer_id = localStorage.getItem("customer_id");
-    if (!customer_id) window.location.href = "/login.html";
+    const token = localStorage.getItem("auth_token");
+    if (!customer_id || !token) {
+      alert("Please login first.");
+      window.location.href = "/login.html";
+    }
 
-    // ✅ Load Cars from Backend
-    async function loadCars() {
-      try {
-        const res = await fetch(`${BACKEND_URL}/api/cars`);
-        const data = await res.json();
-
+    // ✅ Fetch all cars
+    fetch(`${BACKEND_URL}/api/cars`)
+      .then(res => res.json())
+      .then(data => {
         const container = document.getElementById("cars");
         if (!Array.isArray(data) || data.length === 0) {
-          container.innerHTML = `<p class="text-center text-gray-600 col-span-3">No cars available for booking.</p>`;
+          container.innerHTML = '<p class="text-center text-gray-600 col-span-3">No cars available.</p>';
           return;
         }
 
-        container.innerHTML = "";
-
         data.forEach(car => {
           const images = car.images && car.images.length
-            ? car.images.map(img => `
-                <div class="swiper-slide">
-                  <img src="${BACKEND_URL}${img}" alt="${car.brand}" class="w-full h-48 object-cover rounded-lg" />
-                </div>
-              `).join("")
+            ? car.images.map(img =>
+                `<div class="swiper-slide"><img src="${BACKEND_URL}${img}" class="w-full h-48 object-cover rounded-lg"></div>`
+              ).join("")
             : `<div class="swiper-slide"><img src="https://via.placeholder.com/400x300?text=No+Image" class="w-full h-48 object-cover rounded-lg"></div>`;
 
           const div = document.createElement("div");
@@ -101,77 +97,75 @@
             <h2 class="text-xl font-bold">${car.brand} ${car.model}</h2>
             <p class="text-gray-600">Year: ${car.year}</p>
             <p class="text-gray-600">Rate: ₹${car.daily_rate}</p>
-            <p class="text-gray-600 mb-2">Location: ${car.location}</p>
+            <p class="text-gray-600 mb-3">Location: ${car.location}</p>
 
             <div class="space-y-2">
               <input type="text" id="start-${car.id}" placeholder="Start Date" class="border rounded p-2 w-full" />
               <input type="text" id="end-${car.id}" placeholder="End Date" class="border rounded p-2 w-full" />
-              <button id="book-btn-${car.id}" class="bg-blue-600 text-white px-4 py-2 rounded w-full hover:bg-blue-700">Book</button>
+              <button id="book-btn-${car.id}" onclick="bookCar(${car.id}, '${car.brand} ${car.model}', ${car.daily_rate})" class="bg-blue-600 text-white px-4 py-2 rounded w-full">Book</button>
+              <div id="qr-${car.id}" class="hidden mt-4 border-t pt-4"></div>
             </div>
           `;
           container.appendChild(div);
 
-          // Date pickers
           flatpickr(`#start-${car.id}`, { dateFormat: "Y-m-d", minDate: "today" });
           flatpickr(`#end-${car.id}`, { dateFormat: "Y-m-d", minDate: "today" });
-
-          // Booking button
-          document.getElementById(`book-btn-${car.id}`).addEventListener("click", () => bookCar(car.id));
         });
 
-        // Initialize Swiper after rendering all cars
         new Swiper(".carSwiper", {
           loop: true,
           pagination: { el: ".swiper-pagination", clickable: true },
           navigation: { nextEl: ".swiper-button-next", prevEl: ".swiper-button-prev" },
         });
-      } catch (err) {
-        document.getElementById("cars").innerHTML = `<p class="text-center text-red-600">Error loading cars: ${err.message}</p>`;
-      }
-    }
+      });
 
-    loadCars();
-
-    // ✅ Booking Function
-    async function bookCar(car_id) {
+    // ✅ Booking + QR generation
+    async function bookCar(car_id, carName, daily_rate) {
       const start = document.getElementById(`start-${car_id}`).value;
       const end = document.getElementById(`end-${car_id}`).value;
-      const token = localStorage.getItem("auth_token");
+      const btn = document.getElementById(`book-btn-${car_id}`);
+      const qrDiv = document.getElementById(`qr-${car_id}`);
 
       if (!start || !end) return alert("Please select both start and end dates.");
 
-      const btn = document.getElementById(`book-btn-${car_id}`);
       btn.disabled = true;
       btn.innerText = "Booking...";
 
       try {
+        // Calculate total amount (simple daily rate * days)
+        const days = Math.ceil((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24));
+        const amount = daily_rate * days;
+
+        // Create booking
         const res = await fetch(`${BACKEND_URL}/api/book`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            car_id,
-            customer_id,
-            start_date: start,
-            end_date: end,
-          }),
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ car_id, customer_id, start_date: start, end_date: end, amount }),
         });
 
-        const text = await res.text();
-        let data = {};
-        try { data = JSON.parse(text); } catch { data = { message: text }; }
-
+        const data = await res.json();
         btn.disabled = false;
         btn.innerText = "Book";
 
-        if (!res.ok) return alert(data.message || "Booking failed!");
-        alert(data.message || "Booking successful!");
-        window.location.href = "/history.html";
+        if (!res.ok) return alert(data.message || "Failed to create booking");
+
+        alert("Booking successful! Generating payment QR...");
+
+        // Fetch dynamic QR
+        const qrRes = await fetch(`${BACKEND_URL}/api/payment-qr?amount=${amount}&note=${encodeURIComponent(carName)}`);
+        const qrJson = await qrRes.json();
+
+        qrDiv.innerHTML = `
+          <h3 class="text-lg font-semibold text-green-600 mb-2">Scan to Pay ₹${amount}</h3>
+          <img src="${qrJson.qrImage}" alt="UPI QR" class="mx-auto w-56 h-56 border rounded-lg shadow mb-2">
+          <p class="text-gray-600">UPI ID: 8179134484@pthdfc</p>
+          <p class="text-sm text-gray-500 mt-1">Note: After payment, your booking will be verified by admin.</p>
+        `;
+        qrDiv.classList.remove("hidden");
       } catch (err) {
         btn.disabled = false;
         btn.innerText = "Book";
+        console.error(err);
         alert("Error: " + err.message);
       }
     }
