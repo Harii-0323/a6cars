@@ -18,7 +18,7 @@ app.use(bodyParser.json());
 app.use(
   cors({
     origin: [
-      "https://a6cars-frontend-4i84.onrender.com", // ✅ Correct frontend domain
+      "https://a6cars-frontend-4i84.onrender.com", // ✅ Your deployed frontend
       "http://localhost:3000",
       "http://127.0.0.1:5500"
     ],
@@ -62,7 +62,7 @@ app.post('/api/register', async (req, res) => {
       [name, email, phone, hashedPassword]
     );
 
-    res.json({ message: 'Registration successful!' });
+    res.json({ message: '✅ Registration successful!' });
   } catch (error) {
     console.error('❌ Registration Error:', error);
     res.status(500).json({ message: 'Server error during registration.' });
@@ -96,7 +96,7 @@ app.post('/api/login', async (req, res) => {
     );
 
     res.json({
-      message: 'Login successful!',
+      message: '✅ Login successful!',
       token,
       user: {
         id: user.id,
@@ -107,6 +107,36 @@ app.post('/api/login', async (req, res) => {
   } catch (error) {
     console.error('❌ Login Error:', error);
     res.status(500).json({ message: 'Server error during login.' });
+  }
+});
+
+// ==================== ADMIN LOGIN ====================
+app.post('/api/admin/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  // 🔐 Static admin credentials (you can replace these)
+  const ADMIN_EMAIL = "karikeharikrishna@gmail.com";
+  const ADMIN_PASSWORD = "Anu";
+
+  try {
+    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+      const token = jwt.sign(
+        { role: 'admin', email },
+        process.env.JWT_SECRET || 'secret123',
+        { expiresIn: '2h' }
+      );
+
+      return res.json({
+        message: '✅ Admin login successful!',
+        token,
+        admin: { email }
+      });
+    }
+
+    return res.status(401).json({ message: '❌ Invalid admin credentials' });
+  } catch (error) {
+    console.error('❌ Admin Login Error:', error);
+    res.status(500).json({ message: 'Server error during admin login' });
   }
 });
 
@@ -129,3 +159,4 @@ const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`🚀 A6 Cars Backend running on port ${PORT}`);
 });
+
