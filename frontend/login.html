@@ -7,57 +7,54 @@
 </head>
 <body class="bg-gray-100 flex justify-center items-center h-screen">
 
-<div class="bg-white p-8 rounded shadow-lg w-96">
-  <h2 class="text-2xl font-bold mb-6 text-center">Login</h2>
-  <form id="loginForm" class="space-y-4">
-    <input type="email" name="email" placeholder="Email" required class="w-full p-2 border rounded">
-    <input type="password" name="password" placeholder="Password" required class="w-full p-2 border rounded">
-    <button type="submit" class="bg-blue-600 text-white w-full p-2 rounded">Login</button>
-  </form>
-</div>
+  <div class="bg-white p-8 rounded shadow-lg w-96">
+    <h2 class="text-2xl font-bold mb-6 text-center text-blue-600">Login to A6 Cars</h2>
+    <form id="loginForm" class="space-y-4">
+      <input type="email" name="email" placeholder="Email" required class="w-full p-2 border rounded">
+      <input type="password" name="password" placeholder="Password" required class="w-full p-2 border rounded">
+      <button type="submit" class="bg-blue-600 text-white w-full p-2 rounded hover:bg-blue-700">Login</button>
+    </form>
+    <p class="mt-4 text-center text-sm">Don't have an account? 
+      <a href="register.html" class="text-blue-600 hover:underline">Register here</a>
+    </p>
+  </div>
 
-<script>
-  // 🔧 Detect environment (local or live)
-  const BACKEND_URL =
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-      ? 'http://localhost:3000'
-      : 'https://a6cars.onrender.com';
+  <script>
+    // ✅ Use your live backend URL
+    const BACKEND_URL = 'https://a6cars.onrender.com';
 
-  document.getElementById('loginForm').addEventListener('submit', async function (e) {
-    e.preventDefault();
-    const data = Object.fromEntries(new FormData(this).entries());
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target).entries());
 
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
 
-      const text = await res.text();
-      let json = {};
-      try { json = text ? JSON.parse(text) : {}; } catch {}
+        const text = await res.text();
+        const json = text ? JSON.parse(text) : {};
 
-      if (!res.ok) {
-        alert(json.message || 'Login failed');
-        return;
+        if (!res.ok) {
+          alert(json.message || 'Login failed.');
+          return;
+        }
+
+        // ✅ Save login data locally
+        if (json.token) localStorage.setItem('auth_token', json.token);
+        if (json.user?.id) localStorage.setItem('customer_id', json.user.id);
+        if (json.user?.name) localStorage.setItem('customer_name', json.user.name);
+
+        alert('Login successful!');
+        window.location.href = 'booking.html'; // redirect to bookings
+
+      } catch (error) {
+        alert('Error: ' + (error.message || 'Network issue, please try again.'));
       }
-
-      // ✅ Save login details
-      if (json.token) localStorage.setItem('auth_token', json.token);
-      if (json.user) {
-        localStorage.setItem('customer_id', json.user.id);
-        localStorage.setItem('customer_name', json.user.name || json.user.email);
-      }
-
-      alert('Login successful!');
-      window.location.href = '/booking.html';
-
-    } catch (err) {
-      alert('Login failed: ' + (err.message || 'Network error'));
-    }
-  });
-</script>
+    });
+  </script>
 
 </body>
 </html>
