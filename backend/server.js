@@ -52,7 +52,7 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'karikeharikrishna@gmail.com';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Anu';
 const JWT_SECRET = process.env.JWT_SECRET || 'secretkey123';
 
-// JWT Verification
+// Verify JWT middleware
 function verifyToken(req, res, next) {
   const header = req.headers['authorization'];
   if (!header) return res.status(401).json({ message: 'Missing token' });
@@ -65,17 +65,17 @@ function verifyToken(req, res, next) {
 }
 
 // ============================================================
-// ROOT
+// ROOT ENDPOINT
 // ============================================================
-app.get('/', (req, res) => res.send('🚗 A6 Cars API running successfully!'));
+app.get('/', (req, res) => res.send('🚗 A6 Cars API is running successfully!'));
 
 // ============================================================
-// CUSTOMER AUTH
+// CUSTOMER AUTHENTICATION
 // ============================================================
 app.post('/api/register', async (req, res) => {
   const { name, email, phone, password } = req.body;
   if (!name || !email || !phone || !password)
-    return res.status(400).json({ message: 'All fields required' });
+    return res.status(400).json({ message: 'All fields are required' });
 
   try {
     const exists = await pool.query('SELECT * FROM customers WHERE email=$1', [email]);
@@ -118,7 +118,7 @@ app.post('/api/admin/login', (req, res) => {
 });
 
 // ============================================================
-// CARS MANAGEMENT
+// CAR MANAGEMENT
 // ============================================================
 app.post('/api/admin/addcar', verifyToken, upload.array('images', 10), async (req, res) => {
   const client = await pool.connect();
@@ -212,22 +212,19 @@ app.post('/api/payments/qr', async (req, res) => {
 
     res.json({ message: 'Payment QR generated successfully', qr, upiLink, transactionId: txnId, amount });
   } catch (err) {
-    console.error('QR Generation Error:', err);
     res.status(500).json({ message: 'Failed to generate payment QR' });
   }
 });
 
-// ✅ Admin verifies payment -> generate Collection QR
+// ✅ Admin verifies payment & generates collection QR
 app.post('/api/admin/verify-payment', verifyToken, async (req, res) => {
   try {
     const { booking_id } = req.body;
     if (!booking_id) return res.status(400).json({ message: 'Booking ID required' });
 
-    // Update booking & payment as paid
     await pool.query('UPDATE bookings SET paid=true, verified=true, status=$1 WHERE id=$2', ['paid', booking_id]);
     await pool.query('UPDATE payments SET status=$1 WHERE booking_id=$2', ['verified', booking_id]);
 
-    // Fetch booking with details
     const b = await pool.query(`
       SELECT b.id, b.start_date, b.end_date, c.name, c.email, ca.brand, ca.model, ca.location
       FROM bookings b
@@ -253,12 +250,23 @@ app.post('/api/admin/verify-payment', verifyToken, async (req, res) => {
 
     res.json({ message: 'Payment verified & collection QR generated', collectionQR });
   } catch (err) {
-    console.error('Verify error:', err);
     res.status(500).json({ message: 'Failed to verify payment' });
   }
 });
 
-// ✅ Admin scans collection QR (customer arrives)
+// ✅ Fetch booking (for polling collection QR)
+app.get('/api/bookings/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query('SELECT * FROM bookings WHERE id=$1', [id]);
+    if (result.rows.length === 0) return res.status(404).json({ message: 'Booking not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching booking' });
+  }
+});
+
+// ✅ Admin scans customer collection QR
 app.post('/api/admin/verify-qr', verifyToken, async (req, res) => {
   try {
     const { qr_token } = req.body;
@@ -267,15 +275,14 @@ app.post('/api/admin/verify-qr', verifyToken, async (req, res) => {
     const data = JSON.parse(qr_token);
     const booking_id = data.booking_id;
     await pool.query('UPDATE bookings SET status=$1 WHERE id=$2', ['collected', booking_id]);
-    res.json({ message: `Booking ${booking_id} verified successfully. Car handed over to ${data.customer}.` });
+    res.json({ message: `Booking ${booking_id} verified. Car handed over to ${data.customer}.` });
   } catch (err) {
-    console.error('QR Verify Error:', err);
     res.status(500).json({ message: 'Failed to verify booking QR' });
   }
 });
 
 // ============================================================
-// SERVER START
+// START SERVER
 // ============================================================
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
