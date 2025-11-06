@@ -47,7 +47,7 @@ const upload = multer({
 // ============================================================
 // 👨‍💼 STATIC ADMIN CREDENTIALS (fixed bcrypt issue)
 // ============================================================
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || '0323';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'karikeharikrishna@gmail.com';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Anu';
 const JWT_SECRET = process.env.JWT_SECRET || 'secretkey123';
 
