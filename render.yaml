@@ -22,8 +22,10 @@ services:
     autoDeploy: true
 
   # ---------------- FRONTEND SERVICE ----------------
-  - type: static_site
+  - type: web
     name: a6cars-frontend
+    env: static
+    buildCommand: ""
     staticPublishPath: frontend
     autoDeploy: true
 
@@ -34,3 +36,4 @@ databases:
     user: root
     plan: free
     postgresMajorVersion: "17"
+
