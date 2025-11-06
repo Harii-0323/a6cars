@@ -3,78 +3,109 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Booking History | A6 Cars</title>
+  <title>Your Booking History | A6 Cars</title>
+
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 p-6">
 
-<div id="navbar"></div>
+<body class="bg-gray-100 min-h-screen">
+  <!-- Navbar -->
+  <div id="navbar"></div>
 
-<script>
-  // 🔧 Detect backend environment
-  const BACKEND_URL =
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-      ? 'http://localhost:3000'
-      : 'https://a6cars.onrender.com';
+  <script>
+    // ✅ Define backend URL
+    const BACKEND_URL =
+      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+        ? "http://localhost:5000"
+        : "https://a6cars.onrender.com";
 
-  // Load navbar (optional)
-  fetch('/navbar.html')
-    .then(res => res.text())
-    .then(html => {
-      document.getElementById('navbar').innerHTML = html;
-      setupNavbar();
-    });
+    // Load navbar dynamically
+    fetch("/navbar.html")
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById("navbar").innerHTML = html;
+        setupNavbar();
+      });
 
-  function setupNavbar() {
-    try {
-      const logoutBtn = document.getElementById('nav-logout');
-      if (logoutBtn) logoutBtn.onclick = () => {
-        localStorage.clear();
-        window.location.href = '/login.html';
-      };
-    } catch (e) {}
-  }
-</script>
+    function setupNavbar() {
+      const logoutBtn = document.getElementById("nav-logout");
+      if (logoutBtn)
+        logoutBtn.onclick = () => {
+          localStorage.clear();
+          window.location.href = "/login.html";
+        };
+    }
+  </script>
 
-<div class="h-20"></div>
+  <div class="h-20"></div>
 
-<div class="flex justify-center">
-  <div class="bg-white p-6 rounded shadow w-3/4 text-center">
-    <h1 class="text-3xl font-bold text-blue-700 mb-2">Booking History</h1>
-    <p class="text-gray-600 mb-4">Your past bookings are listed below</p>
+  <!-- Title -->
+  <div class="flex justify-center mb-6">
+    <div class="bg-white p-6 rounded shadow w-3/4 text-center">
+      <h1 class="text-3xl font-bold text-blue-700 mb-2">Your Booking History</h1>
+      <p class="text-gray-600 mb-4">View all your car rental bookings</p>
+    </div>
   </div>
-</div>
 
-<div id="history" class="space-y-6 max-w-4xl mx-auto mt-6"></div>
+  <!-- Bookings Container -->
+  <div id="history" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-6 pb-10"></div>
 
-<script>
-const customer_id = localStorage.getItem('customer_id');
-if (!customer_id) window.location.href = '/login.html';
+  <script>
+    const customer_id = localStorage.getItem("customer_id");
+    const token = localStorage.getItem("auth_token");
 
-fetch(`${BACKEND_URL}/api/history/${customer_id}`)
-  .then(res => res.json())
-  .then(data => {
-    const container = document.getElementById('history');
-    if (!Array.isArray(data) || data.length === 0) {
-      container.innerHTML = '<p class="text-center text-gray-600">No bookings found.</p>';
-      return;
+    if (!customer_id) {
+      window.location.href = "/login.html";
     }
 
-    data.forEach(booking => {
-      const div = document.createElement('div');
-      div.className = 'p-4 bg-white shadow rounded-lg';
-      div.innerHTML = `
-        <h3 class="text-xl font-semibold">${booking.brand} ${booking.model} (${booking.year})</h3>
-        <p>📅 ${booking.start_date} → ${booking.end_date}</p>
-        <p>📍 ${booking.location}</p>
-      `;
-      container.appendChild(div);
-    });
-  })
-  .catch(err => {
-    document.getElementById('history').innerHTML = `<p class="text-center text-red-600">Error loading history: ${err.message}</p>`;
-  });
-</script>
+    // ✅ Load booking history
+    async function loadHistory() {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/customer-bookings/${customer_id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
 
+        if (!res.ok) throw new Error("Failed to load history");
+
+        const data = await res.json();
+        const container = document.getElementById("history");
+
+        if (!Array.isArray(data) || data.length === 0) {
+          container.innerHTML = `<p class="text-center text-gray-600 col-span-3">You have no bookings yet.</p>`;
+          return;
+        }
+
+        container.innerHTML = "";
+
+        data.forEach(b => {
+          const status = b.verified
+            ? '<span class="text-green-600 font-semibold">Verified ✅</span>'
+            : '<span class="text-yellow-600 font-semibold">Pending ⏳</span>';
+
+          const payment = b.paid
+            ? '<span class="text-green-600 font-semibold">Paid 💰</span>'
+            : '<span class="text-red-600 font-semibold">Not Paid ❌</span>';
+
+          const card = document.createElement("div");
+          card.className = "bg-white p-5 rounded-lg shadow text-center";
+          card.innerHTML = `
+            <h2 class="text-xl font-bold text-blue-700 mb-2">${b.brand} ${b.model}</h2>
+            <p class="text-gray-600">From: ${b.start_date}</p>
+            <p class="text-gray-600">To: ${b.end_date}</p>
+            <p class="text-gray-600">Amount: ₹${b.amount}</p>
+            <p class="text-gray-600 mt-2">Payment: ${payment}</p>
+            <p class="text-gray-600 mt-1">Status: ${status}</p>
+          `;
+          container.appendChild(card);
+        });
+      } catch (err) {
+        console.error(err);
+        document.getElementById("history").innerHTML = `<p class="text-center text-red-600">Error: ${err.message}</p>`;
+      }
+    }
+
+    loadHistory();
+  </script>
 </body>
 </html>
