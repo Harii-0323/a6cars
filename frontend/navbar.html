@@ -7,7 +7,7 @@
       <li><a href="/index.html" id="nav-home" class="hover:text-gray-300">Home</a></li>
       <li><a href="/booking.html" id="nav-book" class="hover:text-gray-300">Book Car</a></li>
       <li><a href="/history.html" id="nav-history" class="hover:text-gray-300">History</a></li>
-      <li><a href="/admin.html" id="nav-admin" class="hover:text-gray-300 hidden">Admin</a></li>
+      <li><a href="/admin-dashboard.html" id="nav-admin" class="hover:text-yellow-300 hidden font-semibold">Admin Panel</a></li>
       <li id="nav-user" class="hidden font-semibold"></li>
       <li>
         <button id="nav-logout"
@@ -16,6 +16,7 @@
         </button>
       </li>
       <li id="nav-auth" class="flex space-x-2">
+        <a href="/admin.html" class="bg-yellow-400 text-black px-3 py-1 rounded hover:bg-yellow-500 font-semibold">Admin Login</a>
         <a href="/login.html" class="bg-white text-blue-700 px-3 py-1 rounded hover:bg-gray-100">Login</a>
         <a href="/register.html" class="bg-blue-500 px-3 py-1 rounded hover:bg-blue-600">Register</a>
       </li>
@@ -24,7 +25,7 @@
 </nav>
 
 <script>
-  // 🧠 Dynamic navbar setup
+  // 🧠 Dynamic Navbar Logic
   document.addEventListener('DOMContentLoaded', () => {
     try {
       const customerId = localStorage.getItem('customer_id');
@@ -37,28 +38,32 @@
       const adminLink = document.getElementById('nav-admin');
 
       if (customerId || adminLogged) {
-        // Hide login/register links
+        // Hide Login/Register buttons
         authLinks.classList.add('hidden');
         logoutBtn.classList.remove('hidden');
-        if (userEl && customerName) {
-          userEl.innerText = `Hello, ${customerName}`;
+
+        if (customerName) {
+          userEl.textContent = `👋 Hello, ${customerName}`;
           userEl.classList.remove('hidden');
         }
 
+        // Admin Mode
         if (adminLogged) {
           adminLink.classList.remove('hidden');
           document.getElementById('nav-book').classList.add('hidden');
           document.getElementById('nav-history').classList.add('hidden');
           document.getElementById('nav-home').classList.add('hidden');
+          userEl.textContent = `🧑‍💼 Admin`;
         }
       } else {
         // Not logged in
         authLinks.classList.remove('hidden');
         logoutBtn.classList.add('hidden');
-        if (userEl) userEl.classList.add('hidden');
+        userEl.classList.add('hidden');
+        adminLink.classList.add('hidden');
       }
 
-      // Logout clears all session data
+      // Logout logic
       logoutBtn.addEventListener('click', () => {
         localStorage.removeItem('auth_token');
         localStorage.removeItem('customer_id');
