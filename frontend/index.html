@@ -3,11 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>A6 Cars | Home</title>
+  <title>User Dashboard | A6 Cars</title>
+
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
+  <style>
+    .status-paid { color: #16a34a; font-weight: bold; }
+    .status-pending { color: #dc2626; font-weight: bold; }
+  </style>
 </head>
 
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-gray-100 min-h-screen">
+  <!-- Navbar -->
   <div id="navbar"></div>
   <script>
     fetch("/navbar.html")
@@ -15,36 +24,157 @@
       .then(html => document.getElementById("navbar").innerHTML = html);
   </script>
 
-  <div class="h-20"></div>
-
-  <section class="text-center mt-10 px-6">
-    <h1 class="text-4xl font-extrabold text-blue-700 mb-4">Welcome to A6 Cars 🚗</h1>
-    <p class="text-gray-600 mb-6 text-lg">
-      Rent premium cars with secure UPI payments and QR-based verification.
-    </p>
-
-    <div id="action-buttons" class="flex justify-center gap-4"></div>
-  </section>
-
+  <!-- ✅ Redirect if not logged in -->
   <script>
-    const customerId = localStorage.getItem('customer_id');
-    const actionContainer = document.getElementById("action-buttons");
-
-    if (customerId) {
-      actionContainer.innerHTML = `
-        <a href="/book.html" class="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800 transition">Book a Car</a>
-        <a href="/booking.html" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition">My Bookings</a>
-      `;
-    } else {
-      actionContainer.innerHTML = `
-        <a href="/login.html" class="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800 transition">Login</a>
-        <a href="/register.html" class="bg-gray-200 text-blue-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition">Register</a>
-      `;
+    const customer_id = localStorage.getItem("customer_id");
+    const customer_name = localStorage.getItem("customer_name");
+    if (!customer_id) {
+      alert("Please log in to access your dashboard.");
+      window.location.href = "/login.html";
     }
   </script>
 
+  <div class="h-20"></div>
+
+  <!-- Header -->
+  <div class="text-center mb-8">
+    <h1 class="text-3xl font-bold text-blue-700">Welcome, <span id="userName"></span> 👋</h1>
+    <p class="text-gray-600">Here’s an overview of your current and past bookings</p>
+  </div>
+
+  <script>
+    document.getElementById("userName").innerText = customer_name || "Customer";
+  </script>
+
+  <!-- Active Bookings -->
+  <section class="max-w-6xl mx-auto px-6 mb-10">
+    <h2 class="text-2xl font-semibold text-blue-700 mb-4">🚗 Current & Upcoming Bookings</h2>
+    <div id="active-bookings" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+  </section>
+
+  <!-- Past Bookings -->
+  <section class="max-w-6xl mx-auto px-6 mb-10">
+    <h2 class="text-2xl font-semibold text-gray-700 mb-4">📜 Previous Bookings</h2>
+    <div id="past-bookings" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+  </section>
+
+  <script>
+    const BACKEND_URL =
+      (location.hostname === "localhost" || location.hostname === "127.0.0.1")
+        ? "http://localhost:10000"
+        : "https://a6cars.onrender.com";
+
+    async function loadUserBookings() {
+      const activeContainer = document.getElementById("active-bookings");
+      const pastContainer = document.getElementById("past-bookings");
+
+      activeContainer.innerHTML = `<p class="text-center text-gray-500 col-span-3">Loading your bookings...</p>`;
+      pastContainer.innerHTML = "";
+
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/mybookings/${customer_id}`);
+        const data = await res.json();
+        if (!res.ok || !data.length) {
+          activeContainer.innerHTML = `<p class="text-center text-gray-600 col-span-3">No bookings yet. Start by booking your first car!</p>`;
+          return;
+        }
+
+        const now = new Date();
+        const activeBookings = data.filter(bk => new Date(bk.end_date) >= now);
+        const pastBookings = data.filter(bk => new Date(bk.end_date) < now);
+
+        renderBookings(activeBookings, activeContainer, true);
+        renderBookings(pastBookings, pastContainer, false);
+      } catch (err) {
+        activeContainer.innerHTML = `<p class="text-red-600 text-center">${err.message}</p>`;
+      }
+    }
+
+    function renderBookings(bookings, container, isActive) {
+      if (!bookings.length) {
+        container.innerHTML = `<p class="text-center text-gray-500 col-span-3">${isActive ? "No current bookings" : "No past bookings"}</p>`;
+        return;
+      }
+
+      container.innerHTML = "";
+      bookings.forEach(bk => {
+        const status = bk.paid ? "✅ Paid" : "❌ Pending";
+        const verified = bk.verified ? "✅ Verified" : "❌ Not Verified";
+
+        const images = bk.images && bk.images.length
+          ? bk.images.map(img =>
+              `<div class='swiper-slide'><img src='${BACKEND_URL}${img}' class='w-full h-48 object-cover rounded-lg'></div>`
+            ).join("")
+          : `<div class='swiper-slide'><img src='https://via.placeholder.com/400x300?text=No+Image' class='w-full h-48 object-cover rounded-lg'></div>`;
+
+        const card = document.createElement("div");
+        card.className = "bg-white rounded-lg shadow-lg p-4";
+        card.innerHTML = `
+          <div class="swiper carSwiper mb-3">
+            <div class="swiper-wrapper">${images}</div>
+            <div class="swiper-pagination"></div>
+          </div>
+          <h2 class="text-xl font-semibold mb-1">${bk.brand} ${bk.model}</h2>
+          <p class="text-gray-600 mb-1">From: ${new Date(bk.start_date).toLocaleDateString()}</p>
+          <p class="text-gray-600 mb-1">To: ${new Date(bk.end_date).toLocaleDateString()}</p>
+          <p class="text-gray-600 mb-1">Amount: ₹${bk.amount}</p>
+          <p class="text-gray-600 mb-1">Payment: ${status}</p>
+          <p class="text-gray-600 mb-3">Verification: ${verified}</p>
+          ${
+            !bk.paid
+              ? `<button class="bg-blue-600 text-white py-2 rounded w-full" onclick="payNow(${bk.booking_id}, ${bk.amount})">Pay Now</button>`
+              : `<button class="bg-green-600 text-white py-2 rounded w-full" onclick="downloadQR('${bk.collection_qr}', ${bk.booking_id})">Download Collection QR</button>`
+          }
+        `;
+        container.appendChild(card);
+      });
+
+      new Swiper(".carSwiper", {
+        loop: true,
+        pagination: { el: ".swiper-pagination", clickable: true },
+      });
+    }
+
+    async function payNow(booking_id, amount) {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/payments/qr`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ booking_id, customer_id })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+        showPopupQR("Scan to Pay", `Pay ₹${amount} to A6 Cars`, data.qr);
+      } catch (err) {
+        alert("❌ " + err.message);
+      }
+    }
+
+    function downloadQR(qr, id) {
+      const a = document.createElement("a");
+      a.href = qr;
+      a.download = `collection_qr_${id}.png`;
+      a.click();
+    }
+
+    function showPopupQR(title, desc, qr) {
+      const popup = document.createElement("div");
+      popup.className = "fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50";
+      popup.innerHTML = `
+        <div class="bg-white p-6 rounded-lg text-center max-w-sm">
+          <h2 class="text-xl font-bold mb-2 text-blue-700">${title}</h2>
+          <p class="text-gray-600 mb-2">${desc}</p>
+          <img src="${qr}" alt="QR Code" class="mx-auto w-56 h-56 rounded border mb-3">
+          <button class="mt-4 bg-red-600 text-white px-4 py-2 rounded w-full" onclick="this.closest('.fixed').remove()">Close</button>
+        </div>`;
+      document.body.appendChild(popup);
+    }
+
+    loadUserBookings();
+  </script>
+
   <footer class="mt-16 bg-blue-700 text-white text-center py-4">
-    © 2025 A6 Cars | All Rights Reserved
+    <p>© 2025 A6 Cars | All Rights Reserved</p>
   </footer>
 </body>
 </html>
