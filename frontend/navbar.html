@@ -7,9 +7,9 @@
     <!-- Menu -->
     <ul class="flex space-x-6 items-center">
       <!-- Visible for logged-in users -->
-      <li><a href="/home.html" id="nav-home" class="hover:text-gray-300">Home</a></li>
-      <li><a href="/booking.html" id="nav-book" class="hover:text-gray-300">Book Car</a></li>
-      <li><a href="/history.html" id="nav-history" class="hover:text-gray-300">My Bookings</a></li>
+      <li><a href="/home.html" id="nav-home" class="hover:text-gray-300 hidden">Home</a></li>
+      <li><a href="/booking.html" id="nav-book" class="hover:text-gray-300 hidden">Book Car</a></li>
+      <li><a href="/history.html" id="nav-history" class="hover:text-gray-300 hidden">My Bookings</a></li>
 
       <!-- Visible for admin only -->
       <li><a href="/admin-dashboard.html" id="nav-admin" class="hover:text-yellow-300 hidden font-semibold">Admin Panel</a></li>
@@ -36,15 +36,17 @@
 </nav>
 
 <script>
-  // ✅ Navbar setup logic for user/admin
+  // ✅ Dynamic navbar setup
   document.addEventListener('DOMContentLoaded', () => {
     try {
+      // Retrieve login info
       const customerId = localStorage.getItem('customer_id');
       const customerName = localStorage.getItem('customer_name');
       const authToken = localStorage.getItem('auth_token');
       const adminLogged = sessionStorage.getItem('adminLoggedIn');
       const adminToken = sessionStorage.getItem('adminToken');
 
+      // Get element references
       const userEl = document.getElementById('nav-user');
       const logoutBtn = document.getElementById('nav-logout');
       const authLinks = document.getElementById('nav-auth');
@@ -53,10 +55,10 @@
       const navBook = document.getElementById('nav-book');
       const navHistory = document.getElementById('nav-history');
 
-      const isUserLoggedIn = customerId && authToken;
-      const isAdminLoggedIn = adminLogged && adminToken;
+      const isUserLoggedIn = !!(customerId && authToken);
+      const isAdminLoggedIn = !!(adminLogged && adminToken);
 
-      // --- User logged in ---
+      // ✅ User logged in
       if (isUserLoggedIn) {
         authLinks.classList.add('hidden');
         logoutBtn.classList.remove('hidden');
@@ -69,21 +71,22 @@
         userEl.classList.remove('hidden');
       }
 
-      // --- Admin logged in ---
+      // ✅ Admin logged in
       else if (isAdminLoggedIn) {
         authLinks.classList.add('hidden');
         logoutBtn.classList.remove('hidden');
         adminLink.classList.remove('hidden');
-        userEl.textContent = `🧑‍💼 Admin`;
+
+        userEl.textContent = '🧑‍💼 Admin';
         userEl.classList.remove('hidden');
 
-        // Hide user-only items
+        // Hide user-only menu items
         navHome.classList.add('hidden');
         navBook.classList.add('hidden');
         navHistory.classList.add('hidden');
       }
 
-      // --- Guest (not logged in) ---
+      // 🚪 Guest (not logged in)
       else {
         authLinks.classList.remove('hidden');
         logoutBtn.classList.add('hidden');
@@ -94,7 +97,7 @@
         navHistory.classList.add('hidden');
       }
 
-      // ✅ Logout logic
+      // ✅ Logout handler
       logoutBtn.addEventListener('click', () => {
         localStorage.clear();
         sessionStorage.clear();
