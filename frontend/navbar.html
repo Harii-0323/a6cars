@@ -1,26 +1,21 @@
 <!-- ✅ navbar.html -->
 <nav class="bg-blue-700 text-white fixed top-0 left-0 right-0 z-50 shadow-lg">
   <div class="max-w-6xl mx-auto flex justify-between items-center px-6 py-3">
-    <!-- Brand -->
     <a href="/index.html" class="text-2xl font-bold tracking-wide">A6 Cars</a>
-
-    <!-- Menu -->
     <ul class="flex space-x-6 items-center">
       <!-- User links -->
       <li><a href="/home.html" id="nav-home" class="hover:text-gray-300 hidden">Home</a></li>
       <li><a href="/booking.html" id="nav-book" class="hover:text-gray-300 hidden">Book Car</a></li>
       <li><a href="/history.html" id="nav-history" class="hover:text-gray-300 hidden">My Bookings</a></li>
 
-      <!-- Admin link -->
+      <!-- Admin -->
       <li><a href="/admin-dashboard.html" id="nav-admin" class="hover:text-yellow-300 hidden font-semibold">Admin Dashboard</a></li>
 
       <!-- Greeting -->
       <li id="nav-user" class="hidden font-semibold"></li>
 
-      <!-- Logout button -->
-      <li>
-        <button id="nav-logout" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-white hidden">Logout</button>
-      </li>
+      <!-- Logout -->
+      <li><button id="nav-logout" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-white hidden">Logout</button></li>
 
       <!-- Auth links -->
       <li id="nav-auth" class="flex space-x-2">
@@ -33,69 +28,62 @@
 </nav>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
   try {
-    const customerId = localStorage.getItem('customer_id');
-    const customerName = localStorage.getItem('customer_name');
-    const authToken = localStorage.getItem('auth_token');
-    const adminLogged = sessionStorage.getItem('adminLoggedIn');
-    const adminToken = sessionStorage.getItem('adminToken');
+    const customerId = localStorage.getItem("customer_id");
+    const customerName = localStorage.getItem("customer_name");
+    const authToken = localStorage.getItem("auth_token");
+    const adminLogged = sessionStorage.getItem("adminLoggedIn") === "true";
+    const adminToken = sessionStorage.getItem("adminToken");
 
-    const userEl = document.getElementById('nav-user');
-    const logoutBtn = document.getElementById('nav-logout');
-    const authLinks = document.getElementById('nav-auth');
-    const adminLink = document.getElementById('nav-admin');
-    const navHome = document.getElementById('nav-home');
-    const navBook = document.getElementById('nav-book');
-    const navHistory = document.getElementById('nav-history');
+    const userEl = document.getElementById("nav-user");
+    const logoutBtn = document.getElementById("nav-logout");
+    const authLinks = document.getElementById("nav-auth");
+    const adminLink = document.getElementById("nav-admin");
+    const navHome = document.getElementById("nav-home");
+    const navBook = document.getElementById("nav-book");
+    const navHistory = document.getElementById("nav-history");
 
-    const isUserLoggedIn = customerId && authToken;
-    const isAdminLoggedIn = adminLogged && adminToken;
+    const isUserLoggedIn = Boolean(customerId && authToken);
+    const isAdminLoggedIn = Boolean(adminLogged && adminToken);
 
-    // User logged in
-    if (isUserLoggedIn) {
-      authLinks.classList.add('hidden');
-      logoutBtn.classList.remove('hidden');
-      navHome.classList.remove('hidden');
-      navBook.classList.remove('hidden');
-      navHistory.classList.remove('hidden');
-      adminLink.classList.add('hidden');
-      userEl.textContent = `👋 Hello, ${customerName || 'User'}`;
-      userEl.classList.remove('hidden');
+    // 🧑‍💼 Admin logged in
+    if (isAdminLoggedIn) {
+      authLinks.classList.add("hidden");
+      logoutBtn.classList.remove("hidden");
+      adminLink.classList.remove("hidden");
+      userEl.textContent = "🧑‍💼 Admin";
+      userEl.classList.remove("hidden");
+      [navHome, navBook, navHistory].forEach(el => el.classList.add("hidden"));
     }
-    // Admin logged in
-    else if (isAdminLoggedIn) {
-      authLinks.classList.add('hidden');
-      logoutBtn.classList.remove('hidden');
-      adminLink.classList.remove('hidden');
-      userEl.textContent = `🧑‍💼 Admin`;
-      userEl.classList.remove('hidden');
-      navHome.classList.add('hidden');
-      navBook.classList.add('hidden');
-      navHistory.classList.add('hidden');
+    // 👤 User logged in
+    else if (isUserLoggedIn) {
+      authLinks.classList.add("hidden");
+      logoutBtn.classList.remove("hidden");
+      adminLink.classList.add("hidden");
+      [navHome, navBook, navHistory].forEach(el => el.classList.remove("hidden"));
+      userEl.textContent = `👋 Hello, ${customerName || "User"}`;
+      userEl.classList.remove("hidden");
     }
-    // Guest
+    // 🚪 Guest
     else {
-      authLinks.classList.remove('hidden');
-      logoutBtn.classList.add('hidden');
-      userEl.classList.add('hidden');
-      adminLink.classList.add('hidden');
-      navHome.classList.add('hidden');
-      navBook.classList.add('hidden');
-      navHistory.classList.add('hidden');
+      authLinks.classList.remove("hidden");
+      logoutBtn.classList.add("hidden");
+      userEl.classList.add("hidden");
+      adminLink.classList.add("hidden");
+      [navHome, navBook, navHistory].forEach(el => el.classList.add("hidden"));
     }
 
-    // Logout
-    logoutBtn.addEventListener('click', () => {
+    // 🚫 Logout clears everything
+    logoutBtn.addEventListener("click", () => {
       localStorage.clear();
       sessionStorage.clear();
-      alert('You have been logged out.');
-      window.location.href = '/index.html';
+      alert("You have been logged out.");
+      window.location.href = "/index.html";
     });
 
   } catch (err) {
-    console.error('Navbar setup error:', err);
+    console.error("Navbar setup error:", err);
   }
 });
 </script>
-
