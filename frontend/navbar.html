@@ -47,6 +47,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const isUserLoggedIn = Boolean(customerId && authToken);
     const isAdminLoggedIn = Boolean(adminLogged && adminToken);
 
+    // detect if current page is home.html
+    const onHomePage = window.location.pathname.endsWith("home.html");
+
     // 🧑‍💼 Admin logged in
     if (isAdminLoggedIn) {
       authLinks.classList.add("hidden");
@@ -56,6 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
       userEl.classList.remove("hidden");
       [navHome, navBook, navHistory].forEach(el => el.classList.add("hidden"));
     }
+
     // 👤 User logged in
     else if (isUserLoggedIn) {
       authLinks.classList.add("hidden");
@@ -65,13 +69,21 @@ document.addEventListener("DOMContentLoaded", () => {
       userEl.textContent = `👋 Hello, ${customerName || "User"}`;
       userEl.classList.remove("hidden");
     }
+
     // 🚪 Guest
     else {
-      authLinks.classList.remove("hidden");
+      // If on home.html, show Home, Book, My Bookings, hide login/register/admin
+      if (onHomePage) {
+        [navHome, navBook, navHistory].forEach(el => el.classList.remove("hidden"));
+        authLinks.classList.add("hidden");
+      } else {
+        // On other pages, show normal login/register
+        authLinks.classList.remove("hidden");
+        [navHome, navBook, navHistory].forEach(el => el.classList.add("hidden"));
+      }
       logoutBtn.classList.add("hidden");
       userEl.classList.add("hidden");
       adminLink.classList.add("hidden");
-      [navHome, navBook, navHistory].forEach(el => el.classList.add("hidden"));
     }
 
     // 🚫 Logout clears everything
