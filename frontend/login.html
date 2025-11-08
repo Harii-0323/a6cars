@@ -1,57 +1,78 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Login | A6 Cars</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 flex justify-center items-center h-screen">
 
+  <!-- Login box -->
   <div class="bg-white p-8 rounded shadow-lg w-96">
     <h2 class="text-2xl font-bold mb-6 text-center text-blue-600">Login to A6 Cars</h2>
+
     <form id="loginForm" class="space-y-4">
-      <input type="email" name="email" placeholder="Email" required class="w-full p-2 border rounded">
-      <input type="password" name="password" placeholder="Password" required class="w-full p-2 border rounded">
-      <button type="submit" class="bg-blue-600 text-white w-full p-2 rounded hover:bg-blue-700">Login</button>
+      <input type="email" id="email" name="email" placeholder="Email" required class="w-full p-2 border rounded" />
+      <input type="password" id="password" name="password" placeholder="Password" required class="w-full p-2 border rounded" />
+      <button type="submit" class="bg-blue-600 text-white w-full p-2 rounded hover:bg-blue-700">
+        Login
+      </button>
     </form>
-    <p class="mt-4 text-center text-sm">Don't have an account? 
+
+    <p class="mt-4 text-center text-sm">
+      Don't have an account?
       <a href="register.html" class="text-blue-600 hover:underline">Register here</a>
     </p>
   </div>
 
   <script>
-    // ✅ Use your live backend URL
-    const BACKEND_URL = 'https://a6cars.onrender.com';
+    // 🌐 Backend URL (auto-select local or production)
+    const BACKEND_URL =
+      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+        ? "http://localhost:10000"
+        : "https://a6cars.onrender.com";
 
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    // ✅ Handle form submit
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const data = Object.fromEntries(new FormData(e.target).entries());
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      if (!email || !password) {
+        alert("Please enter both email and password.");
+        return;
+      }
 
       try {
         const res = await fetch(`${BACKEND_URL}/api/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
         });
 
         const text = await res.text();
         const json = text ? JSON.parse(text) : {};
 
         if (!res.ok) {
-          alert(json.message || 'Login failed.');
+          alert(json.message || "❌ Invalid email or password");
           return;
         }
 
         // ✅ Save login data locally
-        if (json.token) localStorage.setItem('auth_token', json.token);
-        if (json.user?.id) localStorage.setItem('customer_id', json.user.id);
-        if (json.user?.name) localStorage.setItem('customer_name', json.user.name);
+        if (json.token) localStorage.setItem("auth_token", json.token);
+        if (json.customer_id) localStorage.setItem("customer_id", json.customer_id);
+        if (json.name) localStorage.setItem("customer_name", json.name);
+        if (json.email) localStorage.setItem("customer_email", json.email);
 
-        alert('Login successful!');
-        window.location.href = 'book.html'; // redirect to bookings
+        alert("✅ Login successful!");
 
-      } catch (error) {
-        alert('Error: ' + (error.message || 'Network issue, please try again.'));
+        // Redirect to user home/booking page
+        window.location.href = "/index.html";
+
+      } catch (err) {
+        console.error("Login error:", err);
+        alert("⚠️ Network error. Please try again.");
       }
     });
   </script>
