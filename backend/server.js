@@ -94,8 +94,8 @@ app.post('/api/login', async (req, res) => {
 // ============================================================
 // 🧩 ADMIN ROUTES
 // ============================================================
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@a6cars.com';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'karikeharikrishna@gmail.com';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Anu';
 const JWT_SECRET = process.env.JWT_SECRET || 'secretkey123';
 
 function verifyAdmin(req, res, next) {
