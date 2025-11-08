@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>A6 Cars | Welcome</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -34,32 +34,38 @@
   </footer>
 
   <script>
-    // Backend URL configuration
     const BACKEND_URL =
       (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
         ? "http://localhost:10000"
         : "https://a6cars.onrender.com";
 
-    // Detect login states
+    // Clear any invalid or incomplete sessions
     const userId = localStorage.getItem("customer_id");
     const userName = localStorage.getItem("customer_name");
+    const authToken = localStorage.getItem("auth_token");
     const adminLogged = sessionStorage.getItem("adminLoggedIn");
+    const adminToken = sessionStorage.getItem("adminToken");
 
     const navMenu = document.getElementById("nav-menu");
     const actionButtons = document.getElementById("action-buttons");
 
-    if (adminLogged) {
+    // ✅ Only consider valid login if both ID + token exist
+    const userLoggedIn = userId && authToken;
+    const adminActive = adminLogged && adminToken;
+
+    if (adminActive) {
       // 🧑‍💼 Admin Logged In
       navMenu.innerHTML = `
         <li><button id="logoutBtn" class="bg-red-500 px-4 py-1 rounded hover:bg-red-600">Logout</button></li>
       `;
       actionButtons.innerHTML = `
+        <h2 class="text-2xl font-semibold text-blue-700 mb-4">🧑‍💼 Admin Mode</h2>
         <a href="/admin-dashboard.html" class="bg-yellow-400 text-black px-5 py-2 rounded hover:bg-yellow-500 font-semibold">
           Go to Admin Dashboard
         </a>
       `;
     } 
-    else if (userId) {
+    else if (userLoggedIn) {
       // 👤 User Logged In
       navMenu.innerHTML = `
         <li><a href="/home.html" class="hover:text-gray-200">Home</a></li>
@@ -72,7 +78,7 @@
       `;
     } 
     else {
-      // 🚪 Not Logged In
+      // 🚪 Not Logged In (default landing)
       navMenu.innerHTML = `
         <li><a href="/login.html" class="bg-white text-blue-700 px-3 py-1 rounded hover:bg-gray-100">User Login</a></li>
         <li><a href="/register.html" class="bg-blue-500 px-3 py-1 rounded hover:bg-blue-600">Register</a></li>
@@ -84,7 +90,7 @@
       `;
     }
 
-    // Logout handler
+    // ✅ Logout clears all data
     document.addEventListener("click", (e) => {
       if (e.target.id === "logoutBtn") {
         localStorage.clear();
