@@ -51,19 +51,22 @@ document.addEventListener("DOMContentLoaded", () => {
     const isAdminLoggedIn = Boolean(adminLogged && adminToken);
 
     const path = window.location.pathname;
+
     const isHomePage = path.endsWith("home.html");
+    const isBookPage = path.endsWith("book.html");
     const isBookingPage = path.endsWith("booking.html");
+
+    // Utility functions
+    const show = (...els) => els.forEach(el => el?.classList.remove("hidden"));
+    const hide = (...els) => els.forEach(el => el?.classList.add("hidden"));
 
     // ==============================
     // 🧩 ADMIN LOGGED IN
     // ==============================
     if (isAdminLoggedIn) {
-      authLinks.classList.add("hidden");
-      logoutBtn.classList.remove("hidden");
-      adminLink.classList.remove("hidden");
+      hide(authLinks, navHome, navBook, navHistory);
+      show(adminLink, logoutBtn, userEl);
       userEl.textContent = "🧑‍💼 Admin";
-      userEl.classList.remove("hidden");
-      [navHome, navBook, navHistory].forEach(el => el.classList.add("hidden"));
       return;
     }
 
@@ -71,37 +74,42 @@ document.addEventListener("DOMContentLoaded", () => {
     // 👤 USER LOGGED IN
     // ==============================
     if (isUserLoggedIn) {
-      authLinks.classList.add("hidden");
-      logoutBtn.classList.remove("hidden");
-      adminLink.classList.add("hidden");
+      hide(authLinks, adminLink);
+      show(userEl, logoutBtn);
       userEl.textContent = `👋 Hello, ${customerName || "User"}`;
-      userEl.classList.remove("hidden");
 
+      // Page-specific navigation layout
       if (isHomePage) {
-        navHome.classList.remove("hidden");
-        navBook.classList.remove("hidden");
-        navHistory.classList.remove("hidden");
-      } else if (isBookingPage) {
-        navHome.classList.remove("hidden");
-        navBook.classList.remove("hidden");
-        navHistory.classList.remove("hidden");
-      } else {
-        [navHome, navBook, navHistory].forEach(el => el.classList.remove("hidden"));
+        // home.html → Book, Booking, Logout
+        show(navBook, navHistory);
+        hide(navHome);
+      } 
+      else if (isBookPage) {
+        // book.html → Booking, Home, Logout
+        show(navHistory, navHome);
+        hide(navBook);
+      } 
+      else if (isBookingPage) {
+        // booking.html → Book, Home, Logout
+        show(navBook, navHome);
+        hide(navHistory);
+      } 
+      else {
+        // Default: show all
+        show(navHome, navBook, navHistory);
       }
+
       return;
     }
 
     // ==============================
     // 🚪 GUEST (Not logged in)
     // ==============================
-    authLinks.classList.remove("hidden");
-    logoutBtn.classList.add("hidden");
-    userEl.classList.add("hidden");
-    adminLink.classList.add("hidden");
-    [navHome, navBook, navHistory].forEach(el => el.classList.add("hidden"));
+    show(authLinks);
+    hide(userEl, logoutBtn, adminLink, navHome, navBook, navHistory);
 
     // ==============================
-    // 🚫 LOGOUT
+    // 🚫 LOGOUT FUNCTION
     // ==============================
     logoutBtn.addEventListener("click", () => {
       localStorage.clear();
