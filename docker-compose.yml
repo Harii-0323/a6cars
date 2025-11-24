@@ -1,38 +1,12 @@
 version: '3.8'
 
 services:
-  db:
-    image: mysql:8.0
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: example
-      MYSQL_DATABASE: car_rentals
-    volumes:
-      - db_data:/var/lib/mysql
-      - ./setup.sql:/docker-entrypoint-initdb.d/setup.sql:ro
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   app:
     build: .
     ports:
       - "3000:3000"
-    environment:
-      DB_HOST: db
-      DB_USER: root
-      DB_PASS: example
-      DB_NAME: car_rentals
-      PORT: 3000
-      JWT_SECRET: dev_secret
-    depends_on:
-      db:
-        condition: service_healthy
+    env_file:
+      - .env
     restart: unless-stopped
     volumes:
       - ./:/usr/src/app:cached
-
-volumes:
-  db_data: {}
