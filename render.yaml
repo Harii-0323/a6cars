@@ -5,10 +5,11 @@
 # ============================
 
 services:
-  # ---------------- BACKEND SERVICE (FREE NODE WEB SERVICE) ----------------
+  # ---------------- BACKEND SERVICE ----------------
   - type: web
     name: a6cars-backend
     env: node
+    rootDir: backend
     region: singapore
     buildCommand: "npm install"
     startCommand: "node server.js"
@@ -46,7 +47,7 @@ services:
         value: "10000"
     autoDeploy: true
 
-  # ---------------- FRONTEND SERVICE (STATIC HTML HOSTING) ----------------
+  # ---------------- FRONTEND SERVICE ----------------
   - type: web
     name: a6cars-frontend
     env: static
