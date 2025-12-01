@@ -1,5 +1,6 @@
 FROM node:18-alpine
 
+# Force rebuild trigger - timestamp: 2025-12-01T12:30:00Z
 WORKDIR /usr/src/app
 
 # Copy package files first
