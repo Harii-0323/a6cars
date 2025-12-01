@@ -310,23 +310,35 @@
       refInput.disabled = true;
 
       try {
-        const res = await fetch(`${BACKEND_URL}/api/verify-payment`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            booking_id, 
-            payment_reference_id: refId,
-            customer_id
-          })
-        });
+          const res = await fetch(`${BACKEND_URL}/api/verify-payment`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              booking_id, 
+              payment_reference_id: refId,
+              customer_id
+            })
+          });
 
-        const data = await res.json();
-        
-        if (!res.ok) {
-          alert("❌ " + (data.message || "Payment verification failed"));
-          refInput.disabled = false;
-          return;
-        }
+          // Defensive handling: some failures return HTML (<!DOCTYPE ...) instead of JSON
+          const contentType = res.headers.get("content-type") || "";
+          let data;
+          if (contentType.includes("application/json")) {
+            data = await res.json();
+          } else {
+            // Not JSON — capture response text for debugging and show friendly message
+            const text = await res.text();
+            console.error("/api/verify-payment returned non-JSON response:", text);
+            alert("❌ Server returned an unexpected response. Check backend logs or network.");
+            refInput.disabled = false;
+            return;
+          }
+
+          if (!res.ok) {
+            alert("❌ " + (data.message || "Payment verification failed"));
+            refInput.disabled = false;
+            return;
+          }
 
         // ✅ Payment verified! Show success
         const modal = document.getElementById(`payment-modal-${booking_id}`);

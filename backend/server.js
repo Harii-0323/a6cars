@@ -31,6 +31,11 @@ app.get("/", (req, res) => {
   res.send("🚗 A6 Cars Backend is running successfully!");
 });
 
+// Lightweight health endpoint used by container healthchecks
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
 
 // ============================================================
 // ✅ PostgreSQL Connection
@@ -538,7 +543,7 @@ app.post("/api/verify-payment", async (req, res) => {
       booking_id: bookingData.id,
       customer_id: bookingData.customer_id,
       customer_name: bookingData.customer_name,
-      customer_phone: bookingData.phone,
+      customer_phone: bookingData.customer_phone,
       car_id: bookingData.car_id,
       car: `${bookingData.brand} ${bookingData.model}`,
       location: bookingData.location,
@@ -554,7 +559,7 @@ app.post("/api/verify-payment", async (req, res) => {
       booking_id: bookingData.id,
       customer_id: bookingData.customer_id,
       customer_name: bookingData.customer_name,
-      customer_phone: bookingData.phone,
+      customer_phone: bookingData.customer_phone,
       car_id: bookingData.car_id,
       car: `${bookingData.brand} ${bookingData.model}`,
       location: bookingData.location,

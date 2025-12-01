@@ -6,12 +6,11 @@ WORKDIR /usr/src/app
 COPY backend/package.json ./
 COPY backend/package-lock.json* ./
 
-# Install dependencies
-RUN npm ci --only=production || npm install --production
+# Install production dependencies (use npm install to avoid lockfile mismatches)
+RUN npm install --production --no-audit --no-fund
 
-# Copy backend application code
-COPY backend/server.js ./
-COPY backend/*.js ./
+# Copy backend application code (after install to keep dependency layer cached)
+COPY backend/ ./
 
 # Create uploads directory
 RUN mkdir -p uploads
