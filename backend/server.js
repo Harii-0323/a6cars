@@ -38,25 +38,32 @@ app.get("/", (req, res) => {
 const connectionString = process.env.DATABASE_URL || 
   `postgresql://${process.env.DB_USER || 'root'}:${process.env.DB_PASS || 'password'}@${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME || 'a6cars_db'}`;
 
+console.log('📡 Connecting to database...');
+
 const pool = new Pool({
   connectionString,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 5000,
 });
 
 // Handle pool errors
 pool.on('error', (err) => {
-  console.error('❌ Pool error:', err);
+  console.error('❌ Pool error:', err.message);
 });
 
-// Test connection on startup
+pool.on('connect', () => {
+  console.log('✅ New connection established');
+});
+
+// Test connection on startup with promise
 pool.query('SELECT NOW()', (err, result) => {
   if (err) {
     console.error('❌ Database connection error:', err.message);
+    console.error('   Connection string:', connectionString.replace(/:[^:]*@/, ':****@'));
   } else {
-    console.log('✅ Database connected successfully');
+    console.log('✅ Database connected successfully at', result.rows[0].now);
   }
 });
 
@@ -536,28 +543,67 @@ app.post("/api/admin/verify-qr", verifyAdmin, async (req, res) => {
 // ============================================================
 const PORT = process.env.PORT || 10000;
 const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 A6 Cars backend running on http://0.0.0.0:${PORT}`);
+  console.log(`✅ A6 Cars backend running on http://0.0.0.0:${PORT}`);
+  console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
-// Graceful shutdown
+// Set timeout for graceful shutdown
+server.setTimeout(120000); // 120 seconds
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception:', err);
+  process.exit(1);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+// Graceful shutdown - SIGTERM
 process.on('SIGTERM', () => {
   console.log('⚠️ SIGTERM received, shutting down gracefully...');
+  
+  // Stop accepting new connections
   server.close(() => {
-    console.log('✅ Server closed');
+    console.log('✅ Server closed, closing database pool...');
+    
+    // Close database pool
     pool.end(() => {
       console.log('✅ Database pool closed');
+      console.log('✅ Process exiting gracefully');
       process.exit(0);
     });
   });
+  
+  // Force exit after 30 seconds
+  setTimeout(() => {
+    console.error('❌ Forced shutdown after 30s timeout');
+    process.exit(1);
+  }, 30000);
 });
 
+// Graceful shutdown - SIGINT
 process.on('SIGINT', () => {
   console.log('⚠️ SIGINT received, shutting down gracefully...');
+  
+  // Stop accepting new connections
   server.close(() => {
-    console.log('✅ Server closed');
+    console.log('✅ Server closed, closing database pool...');
+    
+    // Close database pool
     pool.end(() => {
       console.log('✅ Database pool closed');
+      console.log('✅ Process exiting gracefully');
       process.exit(0);
     });
   });
+  
+  // Force exit after 30 seconds
+  setTimeout(() => {
+    console.error('❌ Forced shutdown after 30s timeout');
+    process.exit(1);
+  }, 30000);
 });
