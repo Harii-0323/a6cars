@@ -25,9 +25,9 @@
 </nav>
 
 <script>
-document.addEventListener("DOMContentLoaded", () => {
+function setupNavbar() {
   try {
-    // Debug (SAFE because inside DOMContentLoaded)
+    // Debug (SAFE because inside function)
     console.log("customer_id =", localStorage.getItem("customer_id"));
     console.log("customer_name =", localStorage.getItem("customer_name"));
     console.log("auth_token =", localStorage.getItem("auth_token"));
@@ -106,5 +106,12 @@ document.addEventListener("DOMContentLoaded", () => {
   } catch (err) {
     console.error("Navbar setup error:", err);
   }
-});
+}
+
+// Run immediately and on DOMContentLoaded
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", setupNavbar);
+} else {
+  setupNavbar();
+}
 </script>
