@@ -3,860 +3,901 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Admin Panel | A6 Cars</title>
+  <title>A6 Admin Panel</title>
   <script src="https://cdn.tailwindcss.com"></script>
+
   <style>
     .lb-backdrop { background: rgba(0,0,0,0.7); }
+
+    /* Hide all main admin sections by default */
+    .admin-section {
+      display: none;
+    }
+
+    /* Lightbox */
+    #lightbox { display: none; }
   </style>
 </head>
+
 <body class="bg-gray-100 min-h-screen">
 
-  <!-- backend base -->
-  <script>
-    // Adjust backend URL for dev / prod
-    const BACKEND_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-      ? 'http://localhost:3000'
-      : 'https://a6cars.onrender.com';
+<!-- ========================================================= -->
+<!-- 🔥 TOP NAVBAR -->
+<!-- ========================================================= -->
+<nav class="w-full bg-white shadow fixed top-0 left-0 z-50">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
 
-    function api(path) {
-      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return path;
-      return BACKEND_URL + path;
-    }
-  </script>
-
-  <!-- LOGIN SCREEN -->
-  <div id="admin-login" class="max-w-md mx-auto mt-16 px-4">
-    <div class="bg-white rounded-lg shadow p-6">
-      <h1 class="text-2xl font-bold mb-1">A6 Admin</h1>
-      <p class="text-sm text-gray-500 mb-6">Sign in to manage cars & bookings</p>
-
-      <div class="space-y-4">
-        <input id="admin-email" type="text" placeholder="Admin Email"
-               class="w-full p-3 border rounded" />
-        <input id="admin-password" type="password" placeholder="Password"
-               class="w-full p-3 border rounded" />
-        <div class="flex items-center gap-2">
-          <button id="admin-login-btn"
-                  class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
-            Login
-          </button>
-          <div id="admin-login-msg" class="text-sm text-red-600"></div>
-        </div>
+    <!-- Company Logo -->
+    <div class="flex items-center gap-2">
+      <div class="w-10 h-10 bg-blue-600 text-white rounded-lg flex items-center justify-center font-bold">
+        A6
       </div>
+      <span class="font-semibold text-lg text-gray-800">A6 Admin</span>
     </div>
+
+    <!-- Logout -->
+    <button id="navbar-logout"
+            class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm">
+      Logout
+    </button>
+
   </div>
+</nav>
 
-  <!-- DASHBOARD LAYOUT -->
-  <div id="admin-dashboard" class="hidden">
-    <div class="max-w-6xl mx-auto px-4 lg:px-6 py-6 lg:flex lg:items-start lg:gap-6">
+<!-- Fix spacing below the navbar -->
+<div class="h-16"></div>
 
-      <!-- A6 Admin SIDE CARD -->
-      <aside id="admin-nav-card"
-             class="bg-white rounded-lg shadow p-5 w-full lg:w-72 mb-6 lg:mb-0
-                    lg:sticky lg:top-6 transition-all duration-300">
-        <!-- Logo + title -->
-        <div class="flex items-center gap-3 mb-6">
-          <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white font-semibold">
-            A6
-          </div>
-          <div>
-            <div class="font-semibold text-lg">A6 Admin</div>
-            <div class="text-xs text-gray-500">Control Panel</div>
-          </div>
-        </div>
+<!-- Backend base URL -->
+<script>
+  const BACKEND_URL =
+    (location.hostname === "localhost" || location.hostname === "127.0.0.1")
+      ? "http://localhost:3000"
+      : "https://a6cars.onrender.com";
 
-        <!-- Nav links -->
-        <nav class="space-y-3 mb-6 text-sm">
-          <button class="block w-full text-left hover:text-blue-600"
-                  data-section-target="col-addcar">Add Cars</button>
-          <button class="block w-full text-left hover:text-blue-600"
-                  data-section-target="col-carmanage">Manage Cars</button>
-          <button class="block w-full text-left hover:text-blue-600"
-                  data-section-target="col-verify">Verify Payment</button>
-          <button class="block w-full text-left hover:text-blue-600"
-                  data-section-target="section-business-details">Business Details</button>
-          <button class="block w-full text-left hover:text-blue-600"
-                  data-section-target="section-all">Show All</button>
-        </nav>
+  function api(path){
+    if (location.hostname === "localhost") return path;
+    return BACKEND_URL + path;
+  }
+</script>
 
-        <hr class="my-4" />
+<!-- ========================================================= -->
+<!-- LOGIN SCREEN -->
+<!-- ========================================================= -->
+<div id="admin-login" class="max-w-md mx-auto mt-16 px-4">
+  <div class="bg-white shadow rounded-lg p-6">
+    <h1 class="text-2xl font-bold">A6 Admin</h1>
+    <p class="text-sm text-gray-500 mb-6">Sign in to continue</p>
 
-        <!-- Filters -->
-        <div class="mb-4">
-          <div class="text-xs font-semibold text-gray-500 mb-1">Filters</div>
-          <input id="filter-search" type="text" placeholder="Search"
-                 class="w-full mb-2 p-2 border rounded text-sm" />
-          <div class="flex gap-2 mb-2">
-            <input id="filter-from" type="date"
-                   class="w-1/2 p-2 border rounded text-sm" />
-            <input id="filter-to" type="date"
-                   class="w-1/2 p-2 border rounded text-sm" />
-          </div>
-          <div class="flex gap-2">
-            <button id="filter-apply"
-                    class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded text-sm">
-              Apply
-            </button>
-            <button id="filter-clear"
-                    class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 rounded text-sm">
-              Clear
-            </button>
-          </div>
-        </div>
+    <div class="space-y-3">
+      <input id="admin-email" class="w-full p-3 border rounded" placeholder="Admin Email">
+      <input id="admin-password" type="password" class="w-full p-3 border rounded" placeholder="Password">
 
-        <!-- Logout -->
-        <button id="admin-logout"
-                class="mt-4 bg-red-600 hover:bg-red-700 text-white w-full py-2 rounded text-sm">
-          Logout
+      <div class="flex gap-3">
+        <button id="admin-login-btn"
+                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+          Login
         </button>
-      </aside>
-
-      <!-- MAIN CONTENT -->
-      <main id="admin-main" class="flex-1">
-        <!-- Header + stats -->
-        <div class="bg-white rounded-lg shadow p-5 mb-5">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h1 class="text-2xl font-bold">Admin Panel</h1>
-              <p class="text-sm text-gray-500">
-                Manage cars, bookings and verify payments
-              </p>
-            </div>
-          </div>
-
-          <!-- quick stats -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="p-4 rounded shadow-sm bg-blue-50">
-              <div class="text-sm text-gray-500">Total Bookings</div>
-              <div id="stat-bookings" class="text-2xl font-bold">—</div>
-            </div>
-            <div class="p-4 rounded shadow-sm bg-yellow-50">
-              <div class="text-sm text-gray-500">Pending Payments</div>
-              <div id="stat-pending" class="text-2xl font-bold">—</div>
-            </div>
-            <div class="p-4 rounded shadow-sm bg-green-50">
-              <div class="text-sm text-gray-500">Available Cars</div>
-              <div id="stat-cars" class="text-2xl font-bold">—</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Add / Manage / Verify grid -->
-        <section id="section-all" class="bg-white rounded-lg shadow p-5 mb-5">
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Add Car -->
-            <div id="col-addcar" class="p-4 border rounded bg-white">
-              <h3 class="text-lg font-semibold mb-3">Add Car (multiple images)</h3>
-              <form id="addCarForm" enctype="multipart/form-data" class="space-y-3">
-                <input type="text" name="brand" placeholder="Brand" required class="w-full p-2 border rounded" />
-                <input type="text" name="model" placeholder="Model" required class="w-full p-2 border rounded" />
-                <input type="number" name="year" placeholder="Year" required class="w-full p-2 border rounded" />
-                <input type="number" step="0.01" name="daily_rate" placeholder="Daily Rate (INR)" required class="w-full p-2 border rounded" />
-                <input type="text" name="location" placeholder="Location" required class="w-full p-2 border rounded" />
-                <label class="text-sm text-gray-600">Upload images (JPG/JPEG) — you can select multiple</label>
-                <input type="file" name="images" id="images-input" accept=".jpg,.jpeg" multiple required class="w-full p-2 border rounded bg-gray-50" />
-                <div id="images-preview" class="flex gap-2 mt-2 flex-wrap"></div>
-                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white w-full p-2 rounded">
-                  Add Car
-                </button>
-              </form>
-            </div>
-
-            <!-- Manage Cars -->
-            <div id="col-carmanage" class="p-4 border rounded bg-white lg:col-span-2">
-              <h3 class="text-lg font-semibold mb-3">Manage Cars</h3>
-              <div id="car-list" class="space-y-3"></div>
-
-              <div id="car-bookings-panel" class="hidden mt-4 bg-gray-50 p-3 rounded">
-                <div class="flex items-center justify-between mb-2">
-                  <h4 class="font-medium">
-                    Bookings for <span id="car-bookings-title"></span>
-                  </h4>
-                  <button id="close-car-bookings"
-                          class="text-sm bg-gray-200 px-2 py-1 rounded">
-                    Close
-                  </button>
-                </div>
-                <div class="overflow-auto">
-                  <table class="w-full text-left border-collapse text-sm">
-                    <thead>
-                      <tr>
-                        <th class="border px-2 py-1">Booking ID</th>
-                        <th class="border px-2 py-1">Customer</th>
-                        <th class="border px-2 py-1">From</th>
-                        <th class="border px-2 py-1">To</th>
-                        <th class="border px-2 py-1">Amount</th>
-                        <th class="border px-2 py-1">Paid</th>
-                        <th class="border px-2 py-1">Verified</th>
-                      </tr>
-                    </thead>
-                    <tbody id="car-bookings-body"></tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
-            <!-- Verify Payment (QR scan) -->
-            <div id="col-verify"
-                 class="p-4 border rounded bg-white lg:col-span-3 mt-6 lg:mt-0">
-              <h3 class="text-lg font-semibold mb-3">Verify Payment (Scan QR)</h3>
-              <div id="qr-result" class="mt-2 text-sm"></div>
-
-              <div id="scanner" class="mt-4">
-                <h4 class="font-medium mb-2">Camera Scanner</h4>
-                <video id="video" width="100%" height="220"
-                       style="border:1px solid #ccc"></video>
-                <div id="scan-status" class="text-sm mt-2"></div>
-                <div class="mt-2">
-                  <button id="stop-scan"
-                          class="bg-red-600 hover:bg-red-700 text-white p-2 rounded">
-                    Stop Scan
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Business details placeholder -->
-        <section id="section-business-details"
-                 class="bg-white rounded-lg shadow p-5 mb-5">
-          <h3 class="text-lg font-semibold mb-2">Business Details</h3>
-          <p class="text-sm text-gray-600">
-            You can use this section later to show company details, contact
-            information, GST number, and other business settings.
-          </p>
-        </section>
-
-        <!-- Transactions list -->
-        <section class="bg-white rounded-lg shadow p-5 mb-8">
-          <h3 class="text-lg font-semibold mb-3">Recent Transactions</h3>
-          <div class="overflow-auto">
-            <table id="tx-table" class="w-full text-left text-sm">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="border px-2 py-1">Payment ID</th>
-                  <th class="border px-2 py-1">Customer</th>
-                  <th class="border px-2 py-1">Car</th>
-                  <th class="border px-2 py-1">From</th>
-                  <th class="border px-2 py-1">To</th>
-                  <th class="border px-2 py-1">Amount</th>
-                  <th class="border px-2 py-1">Paid</th>
-                  <th class="border px-2 py-1">Verified</th>
-                </tr>
-              </thead>
-              <tbody id="tx-body"></tbody>
-            </table>
-          </div>
-        </section>
-      </main>
-    </div>
-  </div>
-
-  <!-- Lightbox modal for images -->
-  <div id="lightbox" class="fixed inset-0 hidden items-center justify-center z-50">
-    <div id="lb-backdrop" class="absolute inset-0 lb-backdrop"></div>
-    <div class="relative z-50 max-w-3xl w-full mx-4">
-      <div class="bg-white rounded p-4">
-        <div class="flex justify-between items-center mb-2">
-          <div id="lb-title" class="font-semibold">Images</div>
-          <button id="lb-close" class="bg-red-500 text-white px-2 py-1 rounded">Close</button>
-        </div>
-        <div id="lb-images" class="flex gap-2 overflow-x-auto"></div>
+        <span id="admin-login-msg" class="text-red-600 text-sm"></span>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- jsQR fallback -->
-  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<!-- ========================================================= -->
+<!-- MAIN DASHBOARD (hidden until login) -->
+<!-- ========================================================= -->
+<div id="admin-dashboard" class="hidden">
 
-  <script>
-  /* ---------------------------
-     Auth helpers
-     --------------------------- */
-  function getAdminToken(){
-    return sessionStorage.getItem('adminToken') || '';
-  }
-  function setAdminToken(token){
-    if (token) {
-      sessionStorage.setItem('adminToken', token);
-      sessionStorage.setItem('adminLoggedIn', '1');
+  <div class="max-w-7xl mx-auto pt-6 px-4 lg:flex lg:gap-6">
 
-      // switch screens
-      document.getElementById('admin-login').classList.add('hidden');
-      document.getElementById('admin-dashboard').classList.remove('hidden');
+    
+    <!-- LEFT SIDEBAR -->
+   
+    <aside id="admin-nav-card"
+           class="bg-white shadow rounded-lg p-6 w-full lg:w-72 lg:sticky lg:top-24 h-max">
 
-      // ensure verify column visible when logged in
-      const cv = document.getElementById('col-verify');
-      if (cv) cv.classList.remove('hidden');
+      <!-- Logo -->
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 bg-blue-600 text-white rounded-lg flex items-center justify-center font-bold">
+          A6
+        </div>
+        <div>
+          <div class="font-bold text-lg">A6 Admin</div>
+          <div class="text-xs text-gray-500">Control Panel</div>
+        </div>
+      </div>
 
-      loadCarList();
-      loadTransactions();
-      loadStats();
-    }
-  }
+      <!-- MENU -->
+      <nav class="space-y-3 text-sm">
+        <button onclick="showSection('col-addcar')" class="w-full text-left hover:text-blue-600">
+          Add Cars
+        </button>
 
-  // Admin login
-  document.getElementById('admin-login-btn').addEventListener('click', async () => {
-    const email = document.getElementById('admin-email').value.trim();
-    const password = document.getElementById('admin-password').value;
-    const msg = document.getElementById('admin-login-msg');
-    msg.innerText = '';
-    try {
-      if (!email || !password) throw new Error('Enter credentials');
-      const res = await fetch(api('/api/admin/login'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      const txt = await res.text();
-      let j = {};
-      try { j = txt ? JSON.parse(txt) : {}; } catch(e){}
-      if (!res.ok) throw new Error(j.message || txt || 'Login failed');
-      setAdminToken(j.token);
-    } catch (err) {
-      msg.innerText = err.message || 'Login failed';
-    }
-  });
+        <button onclick="showSection('col-carmanage')" class="w-full text-left hover:text-blue-600">
+          Manage Cars
+        </button>
 
-  // Logout clears sessionStorage and shows login screen
-  document.getElementById('admin-logout').addEventListener('click', () => {
-    sessionStorage.removeItem('adminToken');
-    sessionStorage.removeItem('adminLoggedIn');
-    document.getElementById('admin-dashboard').classList.add('hidden');
-    document.getElementById('admin-login').classList.remove('hidden');
-  });
+        <button onclick="showSection('col-verify')" class="w-full text-left hover:text-blue-600">
+          Verify Payment
+        </button>
 
-  /* ---------------------------
-     Side card nav scroll
-     --------------------------- */
-  document.querySelectorAll('[data-section-target]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.getAttribute('data-section-target');
-      const el = document.getElementById(id);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    });
-  });
+        <button onclick="showSection('section-business-details')" class="w-full text-left hover:text-blue-600">
+          Business Details
+        </button>
 
-  /* ---------------------------
-     Add car (multiple images) UI
-     --------------------------- */
-  const imagesInput = document.getElementById('images-input');
-  const imagesPreview = document.getElementById('images-preview');
+        <button onclick="showSection('section-all')" class="w-full text-left hover:text-blue-600">
+          Show All
+        </button>
+      </nav>
 
-  imagesInput && imagesInput.addEventListener('change', function(){
-    imagesPreview.innerHTML = '';
-    const files = this.files;
-    if (!files || !files.length) return;
-    Array.from(files).forEach(f => {
-      const url = URL.createObjectURL(f);
-      const img = document.createElement('img');
-      img.src = url;
-      img.className = 'w-28 h-20 object-cover rounded border';
-      imagesPreview.appendChild(img);
-    });
-  });
+      <hr class="my-5">
 
-  document.getElementById('addCarForm').addEventListener('submit', async function(e){
-    e.preventDefault();
-    const token = getAdminToken();
-    if (!token) { alert('Please login as admin.'); return; }
-    const fd = new FormData(this);
-    const fileInput = document.querySelector('#images-input');
-    if (!fileInput || !fileInput.files || !fileInput.files.length){
-      alert('Select at least one image (jpg).'); return;
-    }
+      <!-- FILTERS -->
+      <div class="text-xs font-semibold mb-1">Filters</div>
+      <input id="filter-search" class="w-full p-2 mb-2 border rounded text-sm" placeholder="Search">
 
-    try {
-      const res = await fetch(api('/api/admin/addcar'), {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + token },
-        body: fd
-      });
-      const txt = await res.text();
-      let j = {};
-      try { j = txt ? JSON.parse(txt) : {}; } catch(e){}
-      if (!res.ok) throw new Error(j.message || txt || 'Add car failed');
-      alert(j.message || 'Car added');
-      this.reset();
-      imagesPreview.innerHTML = '';
-      loadCarList();
-    } catch(err){
-      console.error(err);
-      alert(err.message || 'Failed to add car');
-    }
-  });
+      <div class="flex gap-2 mb-2">
+        <input id="filter-from" type="date" class="w-1/2 p-2 border rounded text-sm">
+        <input id="filter-to" type="date" class="w-1/2 p-2 border rounded text-sm">
+      </div>
 
-  /* ---------------------------
-     Load car list and manage
-     --------------------------- */
-  async function loadCarList(){
-    try {
-      const token = getAdminToken();
-      const headers = {};
-      if (token) headers['Authorization'] = 'Bearer ' + token;
-      const res = await fetch(api('/api/cars'), { headers });
-      if (!res.ok) throw new Error('Failed to load cars');
-      const list = await res.json();
-      const carListDiv = document.getElementById('car-list');
-      carListDiv.innerHTML = '';
-      if (!Array.isArray(list) || list.length === 0) {
-        carListDiv.innerHTML = '<div class="text-gray-500">No cars found.</div>';
-        document.getElementById('stat-cars').innerText = '0';
-        return;
-      }
+      <div class="flex gap-2">
+        <button id="filter-apply" class="flex-1 bg-green-600 text-white py-2 rounded text-sm">
+          Apply
+        </button>
+        <button id="filter-clear" class="flex-1 bg-gray-200 text-gray-900 py-2 rounded text-sm">
+          Clear
+        </button>
+      </div>
+    </aside>
 
-      list.forEach(car => {
-        let imgs = Array.isArray(car.images) ? car.images : [];
-        imgs = imgs.map(u => {
-          if (!u) return '';
-          return u.startsWith('http') ? u :
-                 (u.startsWith('/') ? BACKEND_URL + u : BACKEND_URL + '/' + u);
-        }).filter(Boolean);
+    <!-- RIGHT CONTENT AREA -->
 
-        const thumb = imgs[0] || 'https://via.placeholder.com/160x100?text=No+Image';
+    <main id="admin-main" class="flex-1">
 
-        const carDiv = document.createElement('div');
-        carDiv.className = 'border rounded p-3 mb-3 flex items-center justify-between';
-        carDiv.innerHTML = `
-          <div class="flex items-center gap-4">
-            <img src="${thumb}" alt="${escapeHtml(car.brand)}"
-                 class="w-36 h-24 object-cover rounded border cursor-pointer"
-                 data-images='${JSON.stringify(imgs)}'>
-            <div>
-              <div class="font-semibold">${escapeHtml(car.brand)} ${escapeHtml(car.model)}</div>
-              <div class="text-gray-600 text-sm">
-                Year: ${car.year} | ₹${car.daily_rate}/day
-              </div>
-              <div class="text-gray-500 text-xs">
-                ${escapeHtml(car.location || '')}
-              </div>
-            </div>
+      <!-- TOP STATS BOX -->
+      <div class="bg-white shadow rounded-lg p-6 mb-6">
+        <h1 class="text-2xl font-bold">Admin Panel</h1>
+        <p class="text-sm text-gray-500 mb-4">
+          Manage cars, bookings and verify payments
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="p-4 bg-blue-50 rounded shadow">
+            <div class="text-sm text-gray-500">Total Bookings</div>
+            <div id="stat-bookings" class="text-2xl font-bold">—</div>
           </div>
-          <div class="flex gap-2">
-            <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded view-bookings"
-                    data-carid="${car.id}" data-carname="${escapeHtml(car.brand+' '+car.model)}">
-              View Bookings
-            </button>
-            <button class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded delete-car"
-                    data-carid="${car.id}">
-              Delete
-            </button>
+
+          <div class="p-4 bg-yellow-50 rounded shadow">
+            <div class="text-sm text-gray-500">Pending Payments</div>
+            <div id="stat-pending" class="text-2xl font-bold">—</div>
           </div>
-        `;
-        carListDiv.appendChild(carDiv);
 
-        carDiv.querySelector('img').addEventListener('click', function(){
-          const arr = JSON.parse(this.getAttribute('data-images') || '[]');
-          openLightbox(arr, `${car.brand} ${car.model}`);
-        });
+          <div class="p-4 bg-green-50 rounded shadow">
+            <div class="text-sm text-gray-500">Available Cars</div>
+            <div id="stat-cars" class="text-2xl font-bold">—</div>
+          </div>
+        </div>
+      </div>
 
-        const vb = carDiv.querySelector('.view-bookings');
-        vb && vb.addEventListener('click', () => viewCarBookings(car.id, car.brand+' '+car.model));
-        const del = carDiv.querySelector('.delete-car');
-        del && del.addEventListener('click', () => deleteCar(car.id, del));
-      });
 
-      // update available cars stat
-      try { document.getElementById('stat-cars').innerText = list.length; } catch(e){}
-    } catch(e){
-      console.error(e);
-      document.getElementById('car-list').innerHTML =
-        '<div class="text-red-500">Failed to load cars</div>';
-    }
-  }
+<!-- ADD CAR SECTION  -->
 
-  async function deleteCar(carId, btn){
-    if (!confirm('Delete car and its bookings?')) return;
-    btn.disabled = true;
-    try {
-      const token = getAdminToken();
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = 'Bearer ' + token;
-      const res = await fetch(api('/api/deletecar'), {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ car_id: carId })
-      });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.message || 'Delete failed');
-      alert(j.message || 'Deleted');
-      loadCarList();
-    } catch(e){
-      alert(e.message || 'Delete failed');
-      btn.disabled = false;
-    }
-  }
+<div id="col-addcar" class="admin-section bg-white shadow rounded-lg p-6 mb-6">
 
-  function viewCarBookings(carId, carName){
-    const panel = document.getElementById('car-bookings-panel');
-    const title = document.getElementById('car-bookings-title');
-    const body = document.getElementById('car-bookings-body');
-    title.innerText = carName;
-    panel.classList.remove('hidden');
-    body.innerHTML = '<tr><td colspan="7" class="text-gray-500">Loading...</td></tr>';
-    const token = getAdminToken();
-    const headers = {};
-    if (token) headers['Authorization'] = 'Bearer ' + token;
-    fetch(api(`/api/car-bookings/${carId}`), { headers })
-      .then(r => r.ok ? r.json() : Promise.reject('Failed'))
-      .then(list => {
-        body.innerHTML = '';
-        if (!Array.isArray(list) || list.length === 0) {
-          body.innerHTML = '<tr><td colspan="7" class="text-gray-500">No bookings found.</td></tr>';
-          return;
-        }
-        list.forEach(bk => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td class="border px-2 py-1">${bk.booking_id || bk.id}</td>
-            <td class="border px-2 py-1">
-              ${escapeHtml(bk.customer_name || bk.name || bk.email || '')}
-            </td>
-            <td class="border px-2 py-1">
-              ${(new Date(bk.start_date)).toLocaleDateString()}
-            </td>
-            <td class="border px-2 py-1">
-              ${(new Date(bk.end_date)).toLocaleDateString()}
-            </td>
-            <td class="border px-2 py-1">
-              ${bk.amount? '₹'+bk.amount : '-'}
-            </td>
-            <td class="border px-2 py-1">${bk.paid==1?'Yes':'No'}</td>
-            <td class="border px-2 py-1">${bk.verified==1?'Yes':'No'}</td>`;
-          body.appendChild(tr);
-        });
-      }).catch(()=>{
-        body.innerHTML = '<tr><td colspan="7" class="text-red-500">Failed to load bookings</td></tr>';
-      });
-  }
+  <h2 class="text-xl font-semibold mb-4">Add Car (Multiple Images)</h2>
 
-  document.getElementById('close-car-bookings').addEventListener('click', () => {
-    document.getElementById('car-bookings-panel').classList.add('hidden');
+  <form id="addCarForm" enctype="multipart/form-data" class="space-y-3">
+
+    <input name="brand" class="w-full p-3 border rounded" placeholder="Brand" required>
+    <input name="model" class="w-full p-3 border rounded" placeholder="Model" required>
+    <input name="year" type="number" class="w-full p-3 border rounded" placeholder="Year" required>
+    <input name="daily_rate" type="number" step="0.01"
+           class="w-full p-3 border rounded" placeholder="Daily Rate (INR)" required>
+    <input name="location" class="w-full p-3 border rounded" placeholder="Location" required>
+
+    <label class="text-sm text-gray-500">Upload Car Images (JPG/JPEG) – Multiple Allowed</label>
+    <input id="images-input" name="images" type="file" accept=".jpg,.jpeg"
+           multiple required class="w-full p-2 border rounded bg-gray-50">
+
+    <div id="images-preview" class="flex flex-wrap gap-2"></div>
+
+    <button type="submit"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded">
+      Add Car
+    </button>
+  </form>
+</div>
+
+<!-- ========================================================= -->
+<!-- MANAGE CARS SECTION  -->
+<!-- ========================================================= -->
+<div id="col-carmanage" class="admin-section bg-white shadow rounded-lg p-6 mb-6">
+
+  <h2 class="text-xl font-semibold mb-4">Manage Cars</h2>
+
+  <div id="car-list" class="space-y-4"></div>
+
+  <!-- Car Bookings Panel -->
+  <div id="car-bookings-panel" class="hidden bg-gray-50 p-4 rounded mt-4">
+
+    <div class="flex justify-between mb-2">
+      <h3 class="font-semibold">
+        Bookings for <span id="car-bookings-title"></span>
+      </h3>
+
+      <button id="close-car-bookings"
+              class="bg-gray-300 hover:bg-gray-400 text-sm px-3 py-1 rounded">
+        Close
+      </button>
+    </div>
+
+    <div class="overflow-auto">
+      <table class="w-full text-sm border-collapse">
+        <thead class="bg-gray-200">
+          <tr>
+            <th class="border px-2 py-1">Booking ID</th>
+            <th class="border px-2 py-1">Customer</th>
+            <th class="border px-2 py-1">From</th>
+            <th class="border px-2 py-1">To</th>
+            <th class="border px-2 py-1">Amount</th>
+            <th class="border px-2 py-1">Paid</th>
+            <th class="border px-2 py-1">Verified</th>
+          </tr>
+        </thead>
+        <tbody id="car-bookings-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ========================================================= -->
+<!-- QR VERIFICATION SECTION-->
+<!-- ========================================================= -->
+<div id="col-verify" class="admin-section bg-white shadow rounded-lg p-6 mb-6">
+
+  <h2 class="text-xl font-semibold mb-4">Verify Payment (Scan QR)</h2>
+
+  <div id="qr-result" class="text-sm mb-3"></div>
+
+  <h3 class="font-medium mb-2">Camera Scanner</h3>
+
+  <video id="video" width="100%" height="220"
+         class="border rounded bg-black"></video>
+
+  <div id="scan-status" class="text-sm mt-2">Waiting for camera…</div>
+
+  <button id="stop-scan"
+          class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 mt-3 rounded">
+    Stop Scan
+  </button>
+
+</div>
+
+<!-- ========================================================= -->
+<!-- BUSINESS DETAILS SECTION  -->
+<!-- ========================================================= -->
+<div id="section-business-details" class="admin-section bg-white shadow rounded-lg p-6 mb-6">
+
+  <h2 class="text-xl font-semibold mb-4">Business Details</h2>
+
+  <p class="text-gray-600 text-sm leading-relaxed">
+    This section can be used to add:
+    <br>• Company information  
+    <br>• Contact details  
+    <br>• GST Number  
+    <br>• Address and more  
+  </p>
+
+</div>
+
+<!-- ========================================================= -->
+<!-- SHOW ALL SECTION -->
+<!-- ========================================================= -->
+<div id="section-all" class="admin-section bg-white shadow rounded-lg p-6 mb-6">
+
+  <h2 class="text-xl font-semibold mb-4">All Sections</h2>
+
+  <p class="text-gray-600 text-sm mb-4">
+    This will display all sections together.
+  </p>
+
+</div>
+
+      <!-- ========================================================= -->
+<!-- RECENT TRANSACTIONS SECTION (ALWAYS VISIBLE) -->
+<!-- ========================================================= -->
+<div class="bg-white shadow rounded-lg p-6 mb-6">
+
+  <h2 class="text-xl font-semibold mb-4">Recent Transactions</h2>
+
+  <div class="overflow-auto">
+    <table id="tx-table" class="w-full text-sm">
+      <thead class="bg-gray-100">
+        <tr>
+          <th class="border px-2 py-1">Payment ID</th>
+          <th class="border px-2 py-1">Customer</th>
+          <th class="border px-2 py-1">Car</th>
+          <th class="border px-2 py-1">From</th>
+          <th class="border px-2 py-1">To</th>
+          <th class="border px-2 py-1">Amount</th>
+          <th class="border px-2 py-1">Paid</th>
+          <th class="border px-2 py-1">Verified</th>
+        </tr>
+      </thead>
+      <tbody id="tx-body"></tbody>
+    </table>
+  </div>
+
+</div>
+
+</main>
+</div>
+</div>
+
+<!-- ========================================================= -->
+<!-- LIGHTBOX FOR VIEWING CAR IMAGES -->
+<!-- ========================================================= -->
+<div id="lightbox"
+     class="fixed inset-0 hidden items-center justify-center z-50 bg-black bg-opacity-70">
+
+  <div class="bg-white max-w-3xl w-full rounded-lg shadow-lg p-4 mx-4">
+    <div class="flex justify-between mb-3">
+      <h3 id="lb-title" class="font-semibold">Images</h3>
+      <button id="lb-close"
+              class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm">
+        Close
+      </button>
+    </div>
+
+    <div id="lb-images"
+         class="flex gap-3 overflow-x-auto pb-2"></div>
+  </div>
+
+</div>
+
+<!-- ========================================================= -->
+<!-- FILTER + HELPER FUNCTIONS -->
+<!-- ========================================================= -->
+<script>
+let allTransactions = []; // global for filtering
+
+function escapeHtml(str) {
+  if (!str) return "";
+  return str.replace(/[&<>\"']/g, function (c) {
+    return ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      "\"": "&quot;",
+      "'": "&#39;"
+    })[c];
+  });
+}
+
+function showToast(message, color = "green") {
+  const toast = document.createElement("div");
+  toast.className =
+    "fixed top-4 right-4 px-4 py-2 rounded text-white z-50 shadow";
+
+  toast.style.background =
+    color === "green"
+      ? "#16a34a"
+      : color === "red"
+      ? "#dc2626"
+      : "#4b5563";
+
+  toast.innerText = message;
+  document.body.appendChild(toast);
+
+  setTimeout(() => toast.remove(), 3000);
+}
+
+function playSuccessSound() {
+  try {
+    new Audio(
+      "https://cdn.pixabay.com/download/audio/2022/03/15/audio_2bda1e560f.mp3"
+    )
+      .play()
+      .catch(() => {});
+  } catch {}
+}
+
+/* ========================================================= */
+/* LIGHTBOX CONTROL */
+/* ========================================================= */
+function openLightbox(images, title) {
+  const lb = document.getElementById("lightbox");
+  const lbImages = document.getElementById("lb-images");
+  const lbTitle = document.getElementById("lb-title");
+
+  lbImages.innerHTML = "";
+  lbTitle.innerText = title;
+
+  images.forEach((img) => {
+    const im = document.createElement("img");
+    im.src = img;
+    im.className = "max-h-96 object-contain rounded shadow";
+    lbImages.appendChild(im);
   });
 
-  /* ---------------------------
-     Transactions & stats
-     --------------------------- */
-  let allTransactions = [];
+  lb.classList.remove("hidden");
+  lb.classList.add("flex");
+}
 
-  function renderTransactions(list){
-    const body = document.getElementById('tx-body');
-    body.innerHTML = '';
-    if (!list || list.length === 0){
-      body.innerHTML =
-        '<tr><td colspan="8" class="text-gray-500 text-center py-2">No transactions found.</td></tr>';
+document.getElementById("lb-close").addEventListener("click", () => {
+  const lb = document.getElementById("lightbox");
+  lb.classList.add("hidden");
+  lb.classList.remove("flex");
+});
+
+/* ========================================================= */
+/* SHOW SPECIFIC SECTION */
+/* ========================================================= */
+function showSection(id) {
+  document
+    .querySelectorAll(".admin-section")
+    .forEach((sec) => (sec.style.display = "none"));
+
+  const target = document.getElementById(id);
+  if (target) {
+    target.style.display = "block";
+    target.scrollIntoView({ behavior: "smooth" });
+  }
+}
+</script>
+
+  <!-- ========================================================= -->
+<!-- ADMIN FUNCTIONALITY + API LOGIC -->
+<!-- ========================================================= -->
+<script>
+// ===============================================================
+// AUTH HELPERS
+// ===============================================================
+function getAdminToken() {
+  return sessionStorage.getItem("adminToken") || "";
+}
+
+function setAdminToken(token) {
+  sessionStorage.setItem("adminToken", token);
+  sessionStorage.setItem("adminLoggedIn", "1");
+
+  document.getElementById("admin-login").classList.add("hidden");
+  document.getElementById("admin-dashboard").classList.remove("hidden");
+
+  loadCars();
+  loadTransactions();
+}
+
+// ===============================================================
+// LOGIN
+// ===============================================================
+document.getElementById("admin-login-btn").addEventListener("click", async () => {
+  const email = document.getElementById("admin-email").value.trim();
+  const password = document.getElementById("admin-password").value;
+  const msg = document.getElementById("admin-login-msg");
+
+  msg.innerText = "";
+
+  try {
+    if (!email || !password) throw new Error("Enter credentials");
+
+    const res = await fetch(api("/api/admin/login"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+
+    const text = await res.text();
+    const data = text ? JSON.parse(text) : {};
+
+    if (!res.ok) throw new Error(data.message || "Login failed");
+
+    setAdminToken(data.token);
+  } catch (err) {
+    msg.innerText = err.message;
+  }
+});
+
+// ===============================================================
+// NAVBAR LOGOUT
+// ===============================================================
+document.getElementById("navbar-logout").addEventListener("click", () => {
+  sessionStorage.clear();
+  location.reload();
+});
+
+// ===============================================================
+// ADD CAR
+// ===============================================================
+document.getElementById("addCarForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const token = getAdminToken();
+  if (!token) return alert("Login required");
+
+  const fd = new FormData(e.target);
+  const imgInput = document.getElementById("images-input");
+
+  if (!imgInput.files.length) {
+    alert("Select at least one image");
+    return;
+  }
+
+  try {
+    const res = await fetch(api("/api/admin/addcar"), {
+      method: "POST",
+      headers: { Authorization: "Bearer " + token },
+      body: fd
+    });
+
+    const text = await res.text();
+    const data = text ? JSON.parse(text) : {};
+
+    if (!res.ok) throw new Error(data.message);
+
+    showToast("Car Added ✔", "green");
+    e.target.reset();
+    document.getElementById("images-preview").innerHTML = "";
+    loadCars();
+  } catch (err) {
+    showToast(err.message, "red");
+  }
+});
+
+// ===============================================================
+// LOAD CARS
+// ===============================================================
+async function loadCars() {
+  try {
+    const res = await fetch(api("/api/cars"));
+    const list = await res.json();
+
+    const carList = document.getElementById("car-list");
+    carList.innerHTML = "";
+
+    if (!list.length) {
+      carList.innerHTML = `<p class="text-gray-500">No cars available</p>`;
       return;
     }
-    list.forEach(tx => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td class="border px-2 py-1">${tx.payment_id}</td>
-        <td class="border px-2 py-1">
-          ${escapeHtml(tx.name || tx.customer_name || '')}
-          ${tx.email ? ' ('+escapeHtml(tx.email)+')' : ''}
-        </td>
-        <td class="border px-2 py-1">
-          ${escapeHtml(tx.brand || '')} ${escapeHtml(tx.model || '')}
-        </td>
-        <td class="border px-2 py-1">
-          ${(new Date(tx.start_date)).toLocaleDateString()}
-        </td>
-        <td class="border px-2 py-1">
-          ${(new Date(tx.end_date)).toLocaleDateString()}
-        </td>
-        <td class="border px-2 py-1">₹${tx.amount}</td>
-        <td class="border px-2 py-1">${tx.paid==1?'Yes':'No'}</td>
-        <td class="border px-2 py-1">${tx.verified==1?'Yes':'No'}</td>
+
+    document.getElementById("stat-cars").innerText = list.length;
+
+    list.forEach((car) => {
+      let imgs = Array.isArray(car.images) ? car.images : [];
+      imgs = imgs.map((img) =>
+        img.startsWith("http") ? img : BACKEND_URL + "/" + img
+      );
+
+      const thumb = imgs[0] || "https://via.placeholder.com/140x90";
+
+      const div = document.createElement("div");
+      div.className =
+        "flex justify-between items-center border rounded p-3 shadow-sm bg-white";
+
+      div.innerHTML = `
+        <div class="flex gap-3">
+          <img src="${thumb}"
+               data-images='${JSON.stringify(imgs)}'
+               class="w-32 h-20 rounded border object-cover cursor-pointer">
+
+          <div>
+            <p class="font-semibold">${escapeHtml(car.brand)} ${escapeHtml(car.model)}</p>
+            <p class="text-gray-600 text-sm">₹${car.daily_rate} / day</p>
+            <p class="text-gray-500 text-xs">${escapeHtml(car.location)}</p>
+          </div>
+        </div>
+
+        <div class="flex gap-2">
+          <button class="view-bookings bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded"
+                  data-id="${car.id}" data-name="${car.brand} ${car.model}">
+            Bookings
+          </button>
+
+          <button class="delete-car bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
+                  data-id="${car.id}">
+            Delete
+          </button>
+        </div>
       `;
-      body.appendChild(tr);
+
+      carList.appendChild(div);
+
+      // lightbox
+      div.querySelector("img").addEventListener("click", function () {
+        const arr = JSON.parse(this.getAttribute("data-images"));
+        openLightbox(arr, car.brand + " " + car.model);
+      });
+
+      // bookings
+      div.querySelector(".view-bookings").addEventListener("click", () => {
+        loadCarBookings(car.id, car.brand + " " + car.model);
+      });
+
+      // delete
+      div.querySelector(".delete-car").addEventListener("click", () => {
+        deleteCar(car.id);
+      });
     });
+  } catch (err) {
+    console.error(err);
   }
+}
 
-  async function loadTransactions(){
-    try {
-      const token = getAdminToken();
-      const headers = {};
-      if (token) headers['Authorization'] = 'Bearer ' + token;
-      const res = await fetch(api('/api/admin/transactions?page=1&pageSize=50'), { headers });
-      if (!res.ok) {
-        document.getElementById('tx-body').innerHTML =
-          '<tr><td colspan="8" class="text-gray-500 text-center py-2">Transactions not available (auth may be required)</td></tr>';
-        return;
-      }
-      const resp = await res.json();
-      const list = resp.data || [];
-      allTransactions = list;
-      renderTransactions(allTransactions);
+// ===============================================================
+// DELETE CAR
+// ===============================================================
+async function deleteCar(id) {
+  if (!confirm("Delete this car?")) return;
 
-      // stats from full list
-      try {
-        document.getElementById('stat-bookings').innerText =
-          resp.total || list.length || 0;
-      } catch(e){}
-      const pending = list.filter(p => p.paid == 0).length;
-      document.getElementById('stat-pending').innerText = pending;
-    } catch (e) {
-      console.error('loadTransactions error', e);
+  try {
+    const token = getAdminToken();
+    const res = await fetch(api("/api/deletecar"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token
+      },
+      body: JSON.stringify({ car_id: id })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message);
+
+    showToast("Car deleted", "green");
+    loadCars();
+  } catch (err) {
+    showToast(err.message, "red");
+  }
+}
+
+// ===============================================================
+// LOAD BOOKINGS FOR A CAR
+// ===============================================================
+async function loadCarBookings(carId, carName) {
+  const panel = document.getElementById("car-bookings-panel");
+  const body = document.getElementById("car-bookings-body");
+
+  panel.classList.remove("hidden");
+  document.getElementById("car-bookings-title").innerText = carName;
+  body.innerHTML = "<tr><td colspan='7'>Loading...</td></tr>";
+
+  try {
+    const res = await fetch(api(`/api/car-bookings/${carId}`));
+    const list = await res.json();
+
+    body.innerHTML = "";
+
+    if (!list.length) {
+      body.innerHTML = "<tr><td colspan='7'>No bookings</td></tr>";
+      return;
     }
+
+    list.forEach((b) => {
+      body.innerHTML += `
+      <tr>
+        <td class="border px-2 py-1">${b.id}</td>
+        <td class="border px-2 py-1">${escapeHtml(b.customer_name || "")}</td>
+        <td class="border px-2 py-1">${new Date(b.start_date).toLocaleDateString()}</td>
+        <td class="border px-2 py-1">${new Date(b.end_date).toLocaleDateString()}</td>
+        <td class="border px-2 py-1">₹${b.amount}</td>
+        <td class="border px-2 py-1">${b.paid ? "Yes" : "No"}</td>
+        <td class="border px-2 py-1">${b.verified ? "Yes" : "No"}</td>
+      </tr>`;
+    });
+  } catch (err) {
+    body.innerHTML = "<tr><td colspan='7'>Error loading bookings</td></tr>";
   }
+}
 
-  async function loadStats(){
-    // stat-cars is set in loadCarList; bookings/pending set in loadTransactions
+document.getElementById("close-car-bookings").addEventListener("click", () => {
+  document.getElementById("car-bookings-panel").classList.add("hidden");
+});
+
+// ===============================================================
+// LOAD TRANSACTIONS
+// ===============================================================
+async function loadTransactions() {
+  try {
+    const token = getAdminToken();
+    const res = await fetch(api("/api/admin/transactions?page=1&pageSize=100"), {
+      headers: { Authorization: "Bearer " + token }
+    });
+
+    const data = await res.json();
+    allTransactions = data.data || [];
+
+    const tbody = document.getElementById("tx-body");
+    tbody.innerHTML = "";
+
+    allTransactions.forEach((tx) => {
+      tbody.innerHTML += `
+      <tr>
+        <td class="border px-2 py-1">${tx.payment_id}</td>
+        <td class="border px-2 py-1">${escapeHtml(tx.name)}</td>
+        <td class="border px-2 py-1">${escapeHtml(tx.brand)} ${escapeHtml(tx.model)}</td>
+        <td class="border px-2 py-1">${new Date(tx.start_date).toLocaleDateString()}</td>
+        <td class="border px-2 py-1">${new Date(tx.end_date).toLocaleDateString()}</td>
+        <td class="border px-2 py-1">₹${tx.amount}</td>
+        <td class="border px-2 py-1">${tx.paid ? "Yes" : "No"}</td>
+        <td class="border px-2 py-1">${tx.verified ? "Yes" : "No"}</td>
+      </tr>`;
+    });
+
+    document.getElementById("stat-bookings").innerText = allTransactions.length;
+    document.getElementById("stat-pending").innerText =
+      allTransactions.filter((tx) => !tx.paid).length;
+  } catch (err) {
+    console.error(err);
   }
+}
 
-  /* Filters on transactions (search + date range) */
-  document.getElementById('filter-apply').addEventListener('click', () => {
-    const q = (document.getElementById('filter-search').value || '').toLowerCase();
-    const from = document.getElementById('filter-from').value;
-    const to = document.getElementById('filter-to').value;
+// ===============================================================
+// FILTER SYSTEM
+// ===============================================================
+document.getElementById("filter-apply").addEventListener("click", () => {
+  const q = document.getElementById("filter-search").value.toLowerCase();
+  const from = document.getElementById("filter-from").value;
+  const to = document.getElementById("filter-to").value;
 
-    let fromDate = from ? new Date(from) : null;
-    let toDate = to ? new Date(to) : null;
-    if (toDate) {
-      // include whole day
-      toDate.setHours(23,59,59,999);
+  let fromDate = from ? new Date(from) : null;
+  let toDate = to ? new Date(to) : null;
+
+  if (toDate) toDate.setHours(23, 59, 59, 999);
+
+  const filtered = allTransactions.filter((tx) => {
+    let match = true;
+
+    if (q) {
+      const text =
+        `${tx.payment_id} ${tx.name} ${tx.brand} ${tx.model}`.toLowerCase();
+      if (!text.includes(q)) match = false;
     }
 
-    const filtered = (allTransactions || []).filter(tx => {
-      let ok = true;
-      if (q) {
-        const hay = (
-          (tx.payment_id || '') + ' ' +
-          (tx.name || tx.customer_name || '') + ' ' +
-          (tx.email || '') + ' ' +
-          (tx.brand || '') + ' ' +
-          (tx.model || '')
-        ).toLowerCase();
-        if (!hay.includes(q)) ok = false;
-      }
-      if (ok && (fromDate || toDate)) {
-        const start = new Date(tx.start_date);
-        if (fromDate && start < fromDate) ok = false;
-        if (toDate && start > toDate) ok = false;
-      }
-      return ok;
+    if (match && (fromDate || toDate)) {
+      const d = new Date(tx.start_date);
+      if (fromDate && d < fromDate) match = false;
+      if (toDate && d > toDate) match = false;
+    }
+
+    return match;
+  });
+
+  document.getElementById("stat-bookings").innerText = filtered.length;
+  document.getElementById("stat-pending").innerText =
+    filtered.filter((tx) => !tx.paid).length;
+
+  renderTransactions(filtered);
+});
+
+document.getElementById("filter-clear").addEventListener("click", () => {
+  document.getElementById("filter-search").value = "";
+  document.getElementById("filter-from").value = "";
+  document.getElementById("filter-to").value = "";
+
+  renderTransactions(allTransactions);
+
+  document.getElementById("stat-bookings").innerText = allTransactions.length;
+  document.getElementById("stat-pending").innerText =
+    allTransactions.filter((tx) => !tx.paid).length;
+});
+
+// ===============================================================
+// QR SCANNER
+// ===============================================================
+let videoStream = null;
+
+async function startScan() {
+  const video = document.getElementById("video");
+  const status = document.getElementById("scan-status");
+
+  status.innerText = "Starting camera...";
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" }
     });
 
-    renderTransactions(filtered);
-    document.getElementById('stat-bookings').innerText = filtered.length;
-    const pending = filtered.filter(p => p.paid == 0).length;
-    document.getElementById('stat-pending').innerText = pending;
-  });
+    video.srcObject = stream;
+    videoStream = stream;
+    video.play();
 
-  document.getElementById('filter-clear').addEventListener('click', () => {
-    document.getElementById('filter-search').value = '';
-    document.getElementById('filter-from').value = '';
-    document.getElementById('filter-to').value = '';
-    renderTransactions(allTransactions);
-    document.getElementById('stat-bookings').innerText = allTransactions.length || 0;
-    const pending = (allTransactions || []).filter(p => p.paid == 0).length;
-    document.getElementById('stat-pending').innerText = pending;
-  });
+    status.innerText = "Scanning...";
 
-  /* ---------------------------
-     Lightbox controls
-     --------------------------- */
-  function openLightbox(images, title){
-    const lb = document.getElementById('lightbox');
-    const lbImages = document.getElementById('lb-images');
-    const lbTitle = document.getElementById('lb-title');
-    lbImages.innerHTML = '';
-    lbTitle.innerText = title || 'Images';
-    (images || []).forEach(url => {
-      const img = document.createElement('img');
-      img.src = url;
-      img.className = 'max-h-96 object-contain mr-2';
-      lbImages.appendChild(img);
-    });
-    lb.classList.remove('hidden');
-    lb.classList.add('flex');
-  }
-  document.getElementById('lb-close').addEventListener('click', () => {
-    const lb = document.getElementById('lightbox');
-    lb.classList.add('hidden');
-    lb.classList.remove('flex');
-  });
+    if (window.BarcodeDetector) {
+      const detector = new BarcodeDetector({ formats: ["qr_code"] });
 
-  /* ---------------------------
-     QR scanning (BarcodeDetector + jsQR fallback)
-     --------------------------- */
-  let videoStream = null;
-  async function startScan(){
-    const video = document.getElementById('video');
-    const status = document.getElementById('scan-status');
-    status.innerText = 'Starting camera...';
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      video.srcObject = stream;
-      videoStream = stream;
-      video.play();
-      status.innerText = 'Scanning...';
-
-      if (window.BarcodeDetector) {
-        try {
-          const detector = new BarcodeDetector({ formats: ['qr_code'] });
-          const loop = async () => {
-            try {
-              const codes = await detector.detect(video);
-              if (codes && codes.length) {
-                const token = codes[0].rawValue;
-                stopScan();
-                status.innerText = 'Found token, verifying...';
-                verifyQrToken(token);
-                return;
-              }
-            } catch(e){}
-            requestAnimationFrame(loop);
-          };
-          requestAnimationFrame(loop);
+      const scanLoop = async () => {
+        const codes = await detector.detect(video);
+        if (codes.length) {
+          stopScan();
+          verifyQr(codes[0].rawValue);
           return;
-        } catch(e){
-          // continue to jsQR fallback
         }
-      }
-
-      // jsQR fallback
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const scanLoop = () => {
-        if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) {
-          requestAnimationFrame(scanLoop); return;
-        }
-        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        try {
-          const imgData = ctx.getImageData(0,0,canvas.width,canvas.height);
-          const code = window.jsQR(imgData.data, imgData.width, imgData.height);
-          if (code && code.data) {
-            stopScan();
-            verifyQrToken(code.data);
-            return;
-          }
-        } catch(e){}
         requestAnimationFrame(scanLoop);
       };
+
       requestAnimationFrame(scanLoop);
-
-    } catch(e) {
-      status.innerText = 'Camera permission or start failed';
     }
+  } catch {
+    status.innerText = "Camera error.";
   }
+}
 
-  function stopScan(){
+function stopScan() {
+  if (videoStream) {
+    videoStream.getTracks().forEach((t) => t.stop());
+  }
+  document.getElementById("scan-status").innerText = "Stopped";
+}
+
+document.getElementById("stop-scan").addEventListener("click", stopScan);
+
+// ===============================================================
+// VERIFY QR
+// ===============================================================
+async function verifyQr(code) {
+  const token = getAdminToken();
+  const status = document.getElementById("scan-status");
+
+  status.innerText = "Verifying...";
+
+  try {
+    let qrData;
     try {
-      if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; }
-      const v = document.getElementById('video');
-      if (v) try{ v.pause(); v.srcObject = null; } catch(e){}
-      document.getElementById('scan-status').innerText = 'Stopped';
-    } catch(e){}
-  }
-  document.getElementById('stop-scan').addEventListener('click', () => stopScan());
-
-  async function verifyQrToken(token){
-    const status = document.getElementById('scan-status');
-    status.innerText = 'Verifying QR...';
-    const t = getAdminToken();
-    if (!t) {
-      status.innerText = 'Admin not logged in.';
-      return;
+      qrData = JSON.parse(code);
+    } catch {
+      qrData = { booking_id: code };
     }
 
-    try {
-      let qr_data;
-      try { qr_data = JSON.parse(token); } catch { qr_data = { booking_id: token }; }
+    const res = await fetch(api("/api/admin/verify-qr"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token
+      },
+      body: JSON.stringify({ qr_data: qrData })
+    });
 
-      const res = await fetch(api('/api/admin/verify-qr'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + t
-        },
-        body: JSON.stringify({ qr_data })
-      });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message);
 
-      const j = await res.json().catch(()=>({}));
-      if (!res.ok) throw new Error(j.message || 'Verification failed');
+    showToast("Verified ✓", "green");
+    playSuccessSound();
 
-      // success
-      playSuccessSound();
-      showToast('✅ Booking verified successfully!', 'green');
-      status.innerText = '✅ Verified';
+    document.getElementById("qr-result").innerHTML = `
+      <div class="bg-green-100 p-3 rounded border border-green-300">
+        <p><b>Booking:</b> ${data.booking_id}</p>
+        <p><b>Customer:</b> ${data.customer?.name}</p>
+        <p><b>Car:</b> ${data.car}</p>
+        <p><b>Amount:</b> ₹${data.amount}</p>
+      </div>
+    `;
 
-      document.getElementById('qr-result').innerHTML = `
-        <div class="bg-green-50 border border-green-300 p-3 rounded mt-2 text-sm">
-          <p><b>Booking ID:</b> ${j.booking_id}</p>
-          <p><b>Customer:</b> ${j.customer?.name || ''} (${j.customer?.email || ''})</p>
-          <p><b>Car:</b> ${j.car || ''}</p>
-          <p><b>Amount:</b> ₹${j.amount || ''}</p>
-        </div>
-      `;
-
-      loadTransactions();
-      loadCarList();
-    } catch(err){
-      showToast('❌ ' + (err.message || 'Verification failed'), 'red');
-      status.innerText = '❌ Verification failed';
-    }
+    loadTransactions();
+    loadCars();
+  } catch (err) {
+    showToast(err.message, "red");
+    status.innerText = "Verification failed";
   }
+}
 
-  /* small utilities */
-  function escapeHtml(s){
-    if (s==null) return '';
-    return String(s).replace(/[&<>"']/g, c => ({
-      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-    }[c]));
+// ===============================================================
+// INITIALIZE PAGE
+// ===============================================================
+(function () {
+  const token = getAdminToken();
+
+  if (token) {
+    document.getElementById("admin-login").classList.add("hidden");
+    document.getElementById("admin-dashboard").classList.remove("hidden");
+
+    loadCars();
+    loadTransactions();
   }
+})();
+</script>
 
-  function playSuccessSound() {
-    try {
-      new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_2bda1e560f.mp3")
-        .play().catch(()=>{});
-    } catch(e){}
-  }
-
-  function showToast(message, color = "green") {
-    const toast = document.createElement("div");
-    toast.style.position = "fixed";
-    toast.style.top = "16px";
-    toast.style.right = "16px";
-    toast.style.padding = "8px 12px";
-    toast.style.zIndex = "9999";
-    toast.style.borderRadius = "6px";
-    toast.style.color = "#fff";
-    toast.style.background =
-      color === 'green' ? '#16a34a' :
-      (color === 'red' ? '#dc2626' : '#4b5563');
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
-  }
-
-  /* ---------------------------
-     Initialization: restore admin session if any
-     --------------------------- */
-  (function init(){
-    const token = getAdminToken();
-    if (token) {
-      document.getElementById('admin-login').classList.add('hidden');
-      document.getElementById('admin-dashboard').classList.remove('hidden');
-      const cv = document.getElementById('col-verify');
-      if (cv) cv.classList.remove('hidden');
-      loadCarList();
-      loadTransactions();
-      loadStats();
-    } else {
-      // start QR scanner only when logged in and section is visible;
-      // if you need auto-start, you can call startScan() after login.
-    }
-
-    // optional: you can auto-start QR scan when verify section scrolls into view
-    // but for now, we leave startScan to be triggered manually if you add a button.
-    startScan(); // auto-start camera on load (remove if you don't want this)
-  })();
-
-  </script>
 </body>
 </html>
