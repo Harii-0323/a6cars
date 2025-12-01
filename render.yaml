@@ -8,6 +8,7 @@ services:
   # ---------------- BACKEND SERVICE ----------------
   - type: web
     name: a6cars-backend
+    path: backend
     env: docker
     region: singapore
     plan: free
@@ -32,6 +33,7 @@ services:
   # ---------------- FRONTEND SERVICE ----------------
   - type: web
     name: a6cars-frontend
+    path: frontend
     env: static
     region: singapore
     plan: free
