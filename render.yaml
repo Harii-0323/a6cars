@@ -1,28 +1,44 @@
 # ============================
 # Render Deployment Configuration
-# A6 Cars Full Project 
+# A6 Cars Full Project
 # Backend + Frontend + Database
 # ============================
 
 services:
-  # ---------------- BACKEND SERVICE ----------------
+  # ---------------- BACKEND SERVICE (FREE NODE WEB SERVICE) ----------------
   - type: web
     name: a6cars-backend
-    env: docker
+    env: node
     region: singapore
-    dockerfilePath: Dockerfile
+    buildCommand: "npm install"
+    startCommand: "node server.js"
+    plan: free
     envVars:
-      - key: DATABASE_URL
+      - key: DB_HOST
         fromDatabase:
           name: a6cars-db
-          property: connectionString
-      - key: PGSSLMODE
-        value: require
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: a6cars-db
+          property: port
+      - key: DB_USER
+        fromDatabase:
+          name: a6cars-db
+          property: user
+      - key: DB_PASS
+        fromDatabase:
+          name: a6cars-db
+          property: password
+      - key: DB_NAME
+        fromDatabase:
+          name: a6cars-db
+          property: database
       - key: JWT_SECRET
         value: secret123
       - key: ADMIN_EMAIL
         value: karikeharikrishna@gmail.com
-      - key: ADMIN_PASSWORD
+      - key: ADMIN_PASS
         value: Anu
       - key: NODE_ENV
         value: production
@@ -30,12 +46,15 @@ services:
         value: "10000"
     autoDeploy: true
 
-  # ---------------- FRONTEND SERVICE ----------------
+  # ---------------- FRONTEND SERVICE (STATIC FREE HOSTING) ----------------
   - type: web
     name: a6cars-frontend
     env: static
+    region: singapore
     rootDir: frontend
-    staticPublishPath: .
+    buildCommand: "npm install && npm run build"
+    staticPublishPath: dist
+    plan: free
     autoDeploy: true
 
 # ---------------- DATABASE ----------------
