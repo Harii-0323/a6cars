@@ -50,7 +50,6 @@ services:
   - type: web
     name: a6cars-frontend
     env: static
-    region: singapore
     rootDir: frontend
     buildCommand: "npm install && npm run build"
     staticPublishPath: dist
