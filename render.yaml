@@ -7,7 +7,7 @@
 services:
   # ---------------- BACKEND SERVICE ----------------
   - type: web
-    name: a6cars-backend
+    name: a6cars:latest
     env: docker
     region: singapore
     dockerfilePath: Dockerfile
