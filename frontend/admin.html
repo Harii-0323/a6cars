@@ -11,136 +11,225 @@
 </head>
 <body class="bg-gray-100 min-h-screen">
 
- <!--
-  <!-- Navbar (loaded from navbar.html if present) -->
-  <div id="navbar"></div>
+  <!-- backend base -->
   <script>
-    fetch('/navbar.html').then(r => r.text()).then(html => { document.getElementById('navbar').innerHTML = html; }).catch(()=>{});
-  </script>
-  -->
+    // Adjust backend URL for dev / prod
+    const BACKEND_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+      ? 'http://localhost:3000'
+      : 'https://a6cars.onrender.com';
 
-  <!-- backend base (use centralized api-config) -->
-  <script src="/api-config.js"></script>
-  <script>
-    // Use centralized API_CONFIG from /api-config.js if available
     function api(path) {
-      if (window.API_CONFIG && typeof window.API_CONFIG.getEndpoint === 'function') {
-        return window.API_CONFIG.getEndpoint(path);
-      }
-      // Fallback: treat path as absolute on prod or local path during dev
-      try {
-        if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return path;
-      } catch(e) {}
-      return 'https://a6cars.onrender.com' + path;
+      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return path;
+      return BACKEND_URL + path;
     }
   </script>
 
-  <div class="h-20"></div>
-
-  <div class="max-w-6xl mx-auto p-6">
+  <!-- LOGIN SCREEN -->
+  <div id="admin-login" class="max-w-md mx-auto mt-16 px-4">
     <div class="bg-white rounded-lg shadow p-6">
-      <div class="flex items-center justify-between mb-6">
-        <div>
-          <h1 class="text-2xl font-bold">Admin Panel</h1>
-          <p class="text-sm text-gray-500">Manage cars, bookings and verify payments</p>
-        </div>
-        <div>
-          <button id="admin-logout" class="bg-red-600 text-white px-3 py-1 rounded hidden">Logout</button>
-        </div>
-      </div>
+      <h1 class="text-2xl font-bold mb-1">A6 Admin</h1>
+      <p class="text-sm text-gray-500 mb-6">Sign in to manage cars & bookings</p>
 
-      <!-- Admin login -->
-      <div id="admin-login" class="max-w-md mx-auto space-y-4">
-        <input id="admin-email" type="text" placeholder="Admin Email" class="w-full p-3 border rounded" />
-        <input id="admin-password" type="password" placeholder="Password" class="w-full p-3 border rounded" />
+      <div class="space-y-4">
+        <input id="admin-email" type="text" placeholder="Admin Email"
+               class="w-full p-3 border rounded" />
+        <input id="admin-password" type="password" placeholder="Password"
+               class="w-full p-3 border rounded" />
         <div class="flex items-center gap-2">
-          <button id="admin-login-btn" class="bg-green-600 text-white px-4 py-2 rounded">Login</button>
+          <button id="admin-login-btn"
+                  class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+            Login
+          </button>
           <div id="admin-login-msg" class="text-sm text-red-600"></div>
         </div>
       </div>
+    </div>
+  </div>
 
-      <!-- Dashboard (hidden until login) -->
-      <div id="admin-dashboard" class="hidden mt-6">
+  <!-- DASHBOARD LAYOUT -->
+  <div id="admin-dashboard" class="hidden">
+    <div class="max-w-6xl mx-auto px-4 lg:px-6 py-6 lg:flex lg:items-start lg:gap-6">
 
-        <!-- quick stats -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div class="p-4 rounded shadow-sm bg-blue-50">
-            <div class="text-sm text-gray-500">Total Bookings</div>
-            <div id="stat-bookings" class="text-2xl font-bold">—</div>
+      <!-- A6 Admin SIDE CARD -->
+      <aside id="admin-nav-card"
+             class="bg-white rounded-lg shadow p-5 w-full lg:w-72 mb-6 lg:mb-0
+                    lg:sticky lg:top-6 transition-all duration-300">
+        <!-- Logo + title -->
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white font-semibold">
+            A6
           </div>
-          <div class="p-4 rounded shadow-sm bg-yellow-50">
-            <div class="text-sm text-gray-500">Pending Payments</div>
-            <div id="stat-pending" class="text-2xl font-bold">—</div>
-          </div>
-          <div class="p-4 rounded shadow-sm bg-green-50">
-            <div class="text-sm text-gray-500">Available Cars</div>
-            <div id="stat-cars" class="text-2xl font-bold">—</div>
+          <div>
+            <div class="font-semibold text-lg">A6 Admin</div>
+            <div class="text-xs text-gray-500">Control Panel</div>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <!-- Add Car -->
-          <div id="col-addcar" class="p-4 border rounded bg-white">
-            <h3 class="text-lg font-semibold mb-3">Add Car (multiple images)</h3>
-            <form id="addCarForm" enctype="multipart/form-data" class="space-y-3">
-              <input type="text" name="brand" placeholder="Brand" required class="w-full p-2 border rounded" />
-              <input type="text" name="model" placeholder="Model" required class="w-full p-2 border rounded" />
-              <input type="number" name="year" placeholder="Year" required class="w-full p-2 border rounded" />
-              <input type="number" step="0.01" name="daily_rate" placeholder="Daily Rate (INR)" required class="w-full p-2 border rounded" />
-              <input type="text" name="location" placeholder="Location" required class="w-full p-2 border rounded" />
-              <label class="text-sm text-gray-600">Upload images (JPG/JPEG) — you can select multiple</label>
-              <input type="file" name="images" id="images-input" accept=".jpg,.jpeg" multiple required class="w-full p-2 border rounded bg-gray-50" />
-              <div id="images-preview" class="flex gap-2 mt-2 flex-wrap"></div>
-              <button type="submit" class="bg-blue-600 text-white w-full p-2 rounded">Add Car</button>
-            </form>
+        <!-- Nav links -->
+        <nav class="space-y-3 mb-6 text-sm">
+          <button class="block w-full text-left hover:text-blue-600"
+                  data-section-target="col-addcar">Add Cars</button>
+          <button class="block w-full text-left hover:text-blue-600"
+                  data-section-target="col-carmanage">Manage Cars</button>
+          <button class="block w-full text-left hover:text-blue-600"
+                  data-section-target="col-verify">Verify Payment</button>
+          <button class="block w-full text-left hover:text-blue-600"
+                  data-section-target="section-business-details">Business Details</button>
+          <button class="block w-full text-left hover:text-blue-600"
+                  data-section-target="section-all">Show All</button>
+        </nav>
+
+        <hr class="my-4" />
+
+        <!-- Filters -->
+        <div class="mb-4">
+          <div class="text-xs font-semibold text-gray-500 mb-1">Filters</div>
+          <input id="filter-search" type="text" placeholder="Search"
+                 class="w-full mb-2 p-2 border rounded text-sm" />
+          <div class="flex gap-2 mb-2">
+            <input id="filter-from" type="date"
+                   class="w-1/2 p-2 border rounded text-sm" />
+            <input id="filter-to" type="date"
+                   class="w-1/2 p-2 border rounded text-sm" />
           </div>
-
-          <!-- Manage Cars -->
-          <div id="col-carmanage" class="p-4 border rounded bg-white lg:col-span-2">
-            <h3 class="text-lg font-semibold mb-3">Manage Cars</h3>
-            <div id="car-list" class="space-y-3"></div>
-
-            <div id="car-bookings-panel" class="hidden mt-4 bg-gray-50 p-3 rounded">
-              <div class="flex items-center justify-between mb-2">
-                <h4 class="font-medium">Bookings for <span id="car-bookings-title"></span></h4>
-                <button id="close-car-bookings" class="text-sm bg-gray-200 px-2 py-1 rounded">Close</button>
-              </div>
-              <div class="overflow-auto">
-                <table class="w-full text-left border-collapse text-sm">
-                  <thead>
-                    <tr>
-                      <th class="border px-2 py-1">Booking ID</th>
-                      <th class="border px-2 py-1">Customer</th>
-                      <th class="border px-2 py-1">From</th>
-                      <th class="border px-2 py-1">To</th>
-                      <th class="border px-2 py-1">Amount</th>
-                      <th class="border px-2 py-1">Paid</th>
-                      <th class="border px-2 py-1">Verified</th>
-                    </tr>
-                  </thead>
-                  <tbody id="car-bookings-body"></tbody>
-                </table>
-              </div>
-            </div>
+          <div class="flex gap-2">
+            <button id="filter-apply"
+                    class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded text-sm">
+              Apply
+            </button>
+            <button id="filter-clear"
+                    class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 rounded text-sm">
+              Clear
+            </button>
           </div>
-
-          <!-- Verify Payment (QR scan) -->
-          <div id="col-verify" class="p-4 border rounded bg-white hidden lg:col-span-3">
-            <h3 class="text-lg font-semibold mb-3">Verify Payment (Scan QR)</h3>
-            <div id="qr-result" class="mt-2 text-sm"></div>
-
-            <div id="scanner" class="mt-4">
-              <h4 class="font-medium mb-2">Camera Scanner</h4>
-              <video id="video" width="100%" height="220" style="border:1px solid #ccc"></video>
-              <div id="scan-status" class="text-sm mt-2"></div>
-              <div class="mt-2"><button id="stop-scan" class="bg-red-600 text-white p-2 rounded">Stop Scan</button></div>
-            </div>
-          </div>
-
         </div>
 
-        <!-- Basic Transactions list (no filters) -->
-        <div class="mt-6 bg-white p-4 rounded">
+        <!-- Logout -->
+        <button id="admin-logout"
+                class="mt-4 bg-red-600 hover:bg-red-700 text-white w-full py-2 rounded text-sm">
+          Logout
+        </button>
+      </aside>
+
+      <!-- MAIN CONTENT -->
+      <main id="admin-main" class="flex-1">
+        <!-- Header + stats -->
+        <div class="bg-white rounded-lg shadow p-5 mb-5">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h1 class="text-2xl font-bold">Admin Panel</h1>
+              <p class="text-sm text-gray-500">
+                Manage cars, bookings and verify payments
+              </p>
+            </div>
+          </div>
+
+          <!-- quick stats -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="p-4 rounded shadow-sm bg-blue-50">
+              <div class="text-sm text-gray-500">Total Bookings</div>
+              <div id="stat-bookings" class="text-2xl font-bold">—</div>
+            </div>
+            <div class="p-4 rounded shadow-sm bg-yellow-50">
+              <div class="text-sm text-gray-500">Pending Payments</div>
+              <div id="stat-pending" class="text-2xl font-bold">—</div>
+            </div>
+            <div class="p-4 rounded shadow-sm bg-green-50">
+              <div class="text-sm text-gray-500">Available Cars</div>
+              <div id="stat-cars" class="text-2xl font-bold">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add / Manage / Verify grid -->
+        <section id="section-all" class="bg-white rounded-lg shadow p-5 mb-5">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Add Car -->
+            <div id="col-addcar" class="p-4 border rounded bg-white">
+              <h3 class="text-lg font-semibold mb-3">Add Car (multiple images)</h3>
+              <form id="addCarForm" enctype="multipart/form-data" class="space-y-3">
+                <input type="text" name="brand" placeholder="Brand" required class="w-full p-2 border rounded" />
+                <input type="text" name="model" placeholder="Model" required class="w-full p-2 border rounded" />
+                <input type="number" name="year" placeholder="Year" required class="w-full p-2 border rounded" />
+                <input type="number" step="0.01" name="daily_rate" placeholder="Daily Rate (INR)" required class="w-full p-2 border rounded" />
+                <input type="text" name="location" placeholder="Location" required class="w-full p-2 border rounded" />
+                <label class="text-sm text-gray-600">Upload images (JPG/JPEG) — you can select multiple</label>
+                <input type="file" name="images" id="images-input" accept=".jpg,.jpeg" multiple required class="w-full p-2 border rounded bg-gray-50" />
+                <div id="images-preview" class="flex gap-2 mt-2 flex-wrap"></div>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white w-full p-2 rounded">
+                  Add Car
+                </button>
+              </form>
+            </div>
+
+            <!-- Manage Cars -->
+            <div id="col-carmanage" class="p-4 border rounded bg-white lg:col-span-2">
+              <h3 class="text-lg font-semibold mb-3">Manage Cars</h3>
+              <div id="car-list" class="space-y-3"></div>
+
+              <div id="car-bookings-panel" class="hidden mt-4 bg-gray-50 p-3 rounded">
+                <div class="flex items-center justify-between mb-2">
+                  <h4 class="font-medium">
+                    Bookings for <span id="car-bookings-title"></span>
+                  </h4>
+                  <button id="close-car-bookings"
+                          class="text-sm bg-gray-200 px-2 py-1 rounded">
+                    Close
+                  </button>
+                </div>
+                <div class="overflow-auto">
+                  <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                      <tr>
+                        <th class="border px-2 py-1">Booking ID</th>
+                        <th class="border px-2 py-1">Customer</th>
+                        <th class="border px-2 py-1">From</th>
+                        <th class="border px-2 py-1">To</th>
+                        <th class="border px-2 py-1">Amount</th>
+                        <th class="border px-2 py-1">Paid</th>
+                        <th class="border px-2 py-1">Verified</th>
+                      </tr>
+                    </thead>
+                    <tbody id="car-bookings-body"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Verify Payment (QR scan) -->
+            <div id="col-verify"
+                 class="p-4 border rounded bg-white lg:col-span-3 mt-6 lg:mt-0">
+              <h3 class="text-lg font-semibold mb-3">Verify Payment (Scan QR)</h3>
+              <div id="qr-result" class="mt-2 text-sm"></div>
+
+              <div id="scanner" class="mt-4">
+                <h4 class="font-medium mb-2">Camera Scanner</h4>
+                <video id="video" width="100%" height="220"
+                       style="border:1px solid #ccc"></video>
+                <div id="scan-status" class="text-sm mt-2"></div>
+                <div class="mt-2">
+                  <button id="stop-scan"
+                          class="bg-red-600 hover:bg-red-700 text-white p-2 rounded">
+                    Stop Scan
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Business details placeholder -->
+        <section id="section-business-details"
+                 class="bg-white rounded-lg shadow p-5 mb-5">
+          <h3 class="text-lg font-semibold mb-2">Business Details</h3>
+          <p class="text-sm text-gray-600">
+            You can use this section later to show company details, contact
+            information, GST number, and other business settings.
+          </p>
+        </section>
+
+        <!-- Transactions list -->
+        <section class="bg-white rounded-lg shadow p-5 mb-8">
           <h3 class="text-lg font-semibold mb-3">Recent Transactions</h3>
           <div class="overflow-auto">
             <table id="tx-table" class="w-full text-left text-sm">
@@ -159,9 +248,8 @@
               <tbody id="tx-body"></tbody>
             </table>
           </div>
-        </div>
-
-      </div>
+        </section>
+      </main>
     </div>
   </div>
 
@@ -193,12 +281,18 @@
     if (token) {
       sessionStorage.setItem('adminToken', token);
       sessionStorage.setItem('adminLoggedIn', '1');
+
+      // switch screens
       document.getElementById('admin-login').classList.add('hidden');
       document.getElementById('admin-dashboard').classList.remove('hidden');
-      document.getElementById('admin-logout').classList.remove('hidden');
-      // show verify column toggle
-      document.getElementById('col-verify').classList.add('hidden');
-      loadCarList(); loadTransactions(); loadStats();
+
+      // ensure verify column visible when logged in
+      const cv = document.getElementById('col-verify');
+      if (cv) cv.classList.remove('hidden');
+
+      loadCarList();
+      loadTransactions();
+      loadStats();
     }
   }
 
@@ -225,13 +319,25 @@
     }
   });
 
-  // Logout fully clears sessionStorage and hides dashboard
+  // Logout clears sessionStorage and shows login screen
   document.getElementById('admin-logout').addEventListener('click', () => {
     sessionStorage.removeItem('adminToken');
     sessionStorage.removeItem('adminLoggedIn');
     document.getElementById('admin-dashboard').classList.add('hidden');
     document.getElementById('admin-login').classList.remove('hidden');
-    document.getElementById('admin-logout').classList.add('hidden');
+  });
+
+  /* ---------------------------
+     Side card nav scroll
+     --------------------------- */
+  document.querySelectorAll('[data-section-target]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-section-target');
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
   });
 
   /* ---------------------------
@@ -259,7 +365,9 @@
     if (!token) { alert('Please login as admin.'); return; }
     const fd = new FormData(this);
     const fileInput = document.querySelector('#images-input');
-    if (!fileInput || !fileInput.files || !fileInput.files.length){ alert('Select at least one image (jpg).'); return; }
+    if (!fileInput || !fileInput.files || !fileInput.files.length){
+      alert('Select at least one image (jpg).'); return;
+    }
 
     try {
       const res = await fetch(api('/api/admin/addcar'), {
@@ -296,6 +404,7 @@
       carListDiv.innerHTML = '';
       if (!Array.isArray(list) || list.length === 0) {
         carListDiv.innerHTML = '<div class="text-gray-500">No cars found.</div>';
+        document.getElementById('stat-cars').innerText = '0';
         return;
       }
 
@@ -303,9 +412,8 @@
         let imgs = Array.isArray(car.images) ? car.images : [];
         imgs = imgs.map(u => {
           if (!u) return '';
-          if (u.startsWith('http')) return u;
-          const base = (window.API_CONFIG && window.API_CONFIG.BACKEND_URL) ? window.API_CONFIG.BACKEND_URL : 'https://a6cars.onrender.com';
-          return u.startsWith('/') ? base + u : base + '/' + u;
+          return u.startsWith('http') ? u :
+                 (u.startsWith('/') ? BACKEND_URL + u : BACKEND_URL + '/' + u);
         }).filter(Boolean);
 
         const thumb = imgs[0] || 'https://via.placeholder.com/160x100?text=No+Image';
@@ -314,16 +422,28 @@
         carDiv.className = 'border rounded p-3 mb-3 flex items-center justify-between';
         carDiv.innerHTML = `
           <div class="flex items-center gap-4">
-            <img src="${thumb}" alt="${escapeHtml(car.brand)}" class="w-36 h-24 object-cover rounded border cursor-pointer" data-images='${JSON.stringify(imgs)}'>
+            <img src="${thumb}" alt="${escapeHtml(car.brand)}"
+                 class="w-36 h-24 object-cover rounded border cursor-pointer"
+                 data-images='${JSON.stringify(imgs)}'>
             <div>
               <div class="font-semibold">${escapeHtml(car.brand)} ${escapeHtml(car.model)}</div>
-              <div class="text-gray-600 text-sm">Year: ${car.year} | ₹${car.daily_rate}/day</div>
-              <div class="text-gray-500 text-xs">${escapeHtml(car.location || '')}</div>
+              <div class="text-gray-600 text-sm">
+                Year: ${car.year} | ₹${car.daily_rate}/day
+              </div>
+              <div class="text-gray-500 text-xs">
+                ${escapeHtml(car.location || '')}
+              </div>
             </div>
           </div>
           <div class="flex gap-2">
-            <button class="bg-blue-600 text-white px-3 py-1 rounded view-bookings" data-carid="${car.id}" data-carname="${escapeHtml(car.brand+' '+car.model)}">View Bookings</button>
-            <button class="bg-red-600 text-white px-3 py-1 rounded delete-car" data-carid="${car.id}">Delete</button>
+            <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded view-bookings"
+                    data-carid="${car.id}" data-carname="${escapeHtml(car.brand+' '+car.model)}">
+              View Bookings
+            </button>
+            <button class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded delete-car"
+                    data-carid="${car.id}">
+              Delete
+            </button>
           </div>
         `;
         carListDiv.appendChild(carDiv);
@@ -341,10 +461,10 @@
 
       // update available cars stat
       try { document.getElementById('stat-cars').innerText = list.length; } catch(e){}
-
     } catch(e){
       console.error(e);
-      document.getElementById('car-list').innerHTML = '<div class="text-red-500">Failed to load cars</div>';
+      document.getElementById('car-list').innerHTML =
+        '<div class="text-red-500">Failed to load cars</div>';
     }
   }
 
@@ -355,7 +475,11 @@
       const token = getAdminToken();
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = 'Bearer ' + token;
-      const res = await fetch(api('/api/deletecar'), { method: 'POST', headers, body: JSON.stringify({ car_id: carId }) });
+      const res = await fetch(api('/api/deletecar'), {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ car_id: carId })
+      });
       const j = await res.json();
       if (!res.ok) throw new Error(j.message || 'Delete failed');
       alert(j.message || 'Deleted');
@@ -386,10 +510,27 @@
         }
         list.forEach(bk => {
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td class="border px-2 py-1">${bk.booking_id || bk.id}</td><td class="border px-2 py-1">${escapeHtml(bk.customer_name || bk.name || bk.email || '')}</td><td class="border px-2 py-1">${(new Date(bk.start_date)).toLocaleDateString()}</td><td class="border px-2 py-1">${(new Date(bk.end_date)).toLocaleDateString()}</td><td class="border px-2 py-1">${bk.amount? '₹'+bk.amount : '-'}</td><td class="border px-2 py-1">${bk.paid==1?'Yes':'No'}</td><td class="border px-2 py-1">${bk.verified==1?'Yes':'No'}</td>`;
+          tr.innerHTML = `
+            <td class="border px-2 py-1">${bk.booking_id || bk.id}</td>
+            <td class="border px-2 py-1">
+              ${escapeHtml(bk.customer_name || bk.name || bk.email || '')}
+            </td>
+            <td class="border px-2 py-1">
+              ${(new Date(bk.start_date)).toLocaleDateString()}
+            </td>
+            <td class="border px-2 py-1">
+              ${(new Date(bk.end_date)).toLocaleDateString()}
+            </td>
+            <td class="border px-2 py-1">
+              ${bk.amount? '₹'+bk.amount : '-'}
+            </td>
+            <td class="border px-2 py-1">${bk.paid==1?'Yes':'No'}</td>
+            <td class="border px-2 py-1">${bk.verified==1?'Yes':'No'}</td>`;
           body.appendChild(tr);
         });
-      }).catch(()=> { body.innerHTML = '<tr><td colspan="7" class="text-red-500">Failed to load bookings</td></tr>'; });
+      }).catch(()=>{
+        body.innerHTML = '<tr><td colspan="7" class="text-red-500">Failed to load bookings</td></tr>';
+      });
   }
 
   document.getElementById('close-car-bookings').addEventListener('click', () => {
@@ -399,25 +540,62 @@
   /* ---------------------------
      Transactions & stats
      --------------------------- */
+  let allTransactions = [];
+
+  function renderTransactions(list){
+    const body = document.getElementById('tx-body');
+    body.innerHTML = '';
+    if (!list || list.length === 0){
+      body.innerHTML =
+        '<tr><td colspan="8" class="text-gray-500 text-center py-2">No transactions found.</td></tr>';
+      return;
+    }
+    list.forEach(tx => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="border px-2 py-1">${tx.payment_id}</td>
+        <td class="border px-2 py-1">
+          ${escapeHtml(tx.name || tx.customer_name || '')}
+          ${tx.email ? ' ('+escapeHtml(tx.email)+')' : ''}
+        </td>
+        <td class="border px-2 py-1">
+          ${escapeHtml(tx.brand || '')} ${escapeHtml(tx.model || '')}
+        </td>
+        <td class="border px-2 py-1">
+          ${(new Date(tx.start_date)).toLocaleDateString()}
+        </td>
+        <td class="border px-2 py-1">
+          ${(new Date(tx.end_date)).toLocaleDateString()}
+        </td>
+        <td class="border px-2 py-1">₹${tx.amount}</td>
+        <td class="border px-2 py-1">${tx.paid==1?'Yes':'No'}</td>
+        <td class="border px-2 py-1">${tx.verified==1?'Yes':'No'}</td>
+      `;
+      body.appendChild(tr);
+    });
+  }
+
   async function loadTransactions(){
     try {
       const token = getAdminToken();
       const headers = {};
       if (token) headers['Authorization'] = 'Bearer ' + token;
-      const res = await fetch(api('/api/admin/transactions?page=1&pageSize=20'), { headers });
+      const res = await fetch(api('/api/admin/transactions?page=1&pageSize=50'), { headers });
       if (!res.ok) {
-        document.getElementById('tx-body').innerHTML = '<tr><td colspan="8" class="text-gray-500">Transactions not available (auth may be required)</td></tr>';
+        document.getElementById('tx-body').innerHTML =
+          '<tr><td colspan="8" class="text-gray-500 text-center py-2">Transactions not available (auth may be required)</td></tr>';
         return;
       }
       const resp = await res.json();
       const list = resp.data || [];
-      const body = document.getElementById('tx-body'); body.innerHTML = '';
-      list.forEach(tx => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td class="border px-2 py-1">${tx.payment_id}</td><td class="border px-2 py-1">${escapeHtml(tx.name || tx.customer_name || '')} (${escapeHtml(tx.email || '')})</td><td class="border px-2 py-1">${escapeHtml(tx.brand || '')} ${escapeHtml(tx.model || '')}</td><td class="border px-2 py-1">${(new Date(tx.start_date)).toLocaleDateString()}</td><td class="border px-2 py-1">${(new Date(tx.end_date)).toLocaleDateString()}</td><td class="border px-2 py-1">₹${tx.amount}</td><td class="border px-2 py-1">${tx.paid==1?'Yes':'No'}</td><td class="border px-2 py-1">${tx.verified==1?'Yes':'No'}</td>`;
-        body.appendChild(tr);
-      });
-      try { document.getElementById('stat-bookings').innerText = resp.total || (list.length); } catch(e){}
+      allTransactions = list;
+      renderTransactions(allTransactions);
+
+      // stats from full list
+      try {
+        document.getElementById('stat-bookings').innerText =
+          resp.total || list.length || 0;
+      } catch(e){}
       const pending = list.filter(p => p.paid == 0).length;
       document.getElementById('stat-pending').innerText = pending;
     } catch (e) {
@@ -428,6 +606,55 @@
   async function loadStats(){
     // stat-cars is set in loadCarList; bookings/pending set in loadTransactions
   }
+
+  /* Filters on transactions (search + date range) */
+  document.getElementById('filter-apply').addEventListener('click', () => {
+    const q = (document.getElementById('filter-search').value || '').toLowerCase();
+    const from = document.getElementById('filter-from').value;
+    const to = document.getElementById('filter-to').value;
+
+    let fromDate = from ? new Date(from) : null;
+    let toDate = to ? new Date(to) : null;
+    if (toDate) {
+      // include whole day
+      toDate.setHours(23,59,59,999);
+    }
+
+    const filtered = (allTransactions || []).filter(tx => {
+      let ok = true;
+      if (q) {
+        const hay = (
+          (tx.payment_id || '') + ' ' +
+          (tx.name || tx.customer_name || '') + ' ' +
+          (tx.email || '') + ' ' +
+          (tx.brand || '') + ' ' +
+          (tx.model || '')
+        ).toLowerCase();
+        if (!hay.includes(q)) ok = false;
+      }
+      if (ok && (fromDate || toDate)) {
+        const start = new Date(tx.start_date);
+        if (fromDate && start < fromDate) ok = false;
+        if (toDate && start > toDate) ok = false;
+      }
+      return ok;
+    });
+
+    renderTransactions(filtered);
+    document.getElementById('stat-bookings').innerText = filtered.length;
+    const pending = filtered.filter(p => p.paid == 0).length;
+    document.getElementById('stat-pending').innerText = pending;
+  });
+
+  document.getElementById('filter-clear').addEventListener('click', () => {
+    document.getElementById('filter-search').value = '';
+    document.getElementById('filter-from').value = '';
+    document.getElementById('filter-to').value = '';
+    renderTransactions(allTransactions);
+    document.getElementById('stat-bookings').innerText = allTransactions.length || 0;
+    const pending = (allTransactions || []).filter(p => p.paid == 0).length;
+    document.getElementById('stat-pending').innerText = pending;
+  });
 
   /* ---------------------------
      Lightbox controls
@@ -449,7 +676,8 @@
   }
   document.getElementById('lb-close').addEventListener('click', () => {
     const lb = document.getElementById('lightbox');
-    lb.classList.add('hidden'); lb.classList.remove('flex');
+    lb.classList.add('hidden');
+    lb.classList.remove('flex');
   });
 
   /* ---------------------------
@@ -494,7 +722,9 @@
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       const scanLoop = () => {
-        if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) { requestAnimationFrame(scanLoop); return; }
+        if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) {
+          requestAnimationFrame(scanLoop); return;
+        }
         canvas.width = video.videoWidth; canvas.height = video.videoHeight;
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         try {
@@ -518,7 +748,8 @@
   function stopScan(){
     try {
       if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; }
-      const v = document.getElementById('video'); if (v) try{ v.pause(); v.srcObject = null; } catch(e){}
+      const v = document.getElementById('video');
+      if (v) try{ v.pause(); v.srcObject = null; } catch(e){}
       document.getElementById('scan-status').innerText = 'Stopped';
     } catch(e){}
   }
@@ -528,7 +759,10 @@
     const status = document.getElementById('scan-status');
     status.innerText = 'Verifying QR...';
     const t = getAdminToken();
-    if (!t) return status.innerText = 'Admin not logged in.';
+    if (!t) {
+      status.innerText = 'Admin not logged in.';
+      return;
+    }
 
     try {
       let qr_data;
@@ -536,7 +770,10 @@
 
       const res = await fetch(api('/api/admin/verify-qr'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + t },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + t
+        },
         body: JSON.stringify({ qr_data })
       });
 
@@ -557,7 +794,8 @@
         </div>
       `;
 
-      loadTransactions(); loadCarList();
+      loadTransactions();
+      loadCarList();
     } catch(err){
       showToast('❌ ' + (err.message || 'Verification failed'), 'red');
       status.innerText = '❌ Verification failed';
@@ -565,9 +803,20 @@
   }
 
   /* small utilities */
-  function escapeHtml(s){ if (s==null) return ''; return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function escapeHtml(s){
+    if (s==null) return '';
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+  }
 
-  function playSuccessSound() { try { new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_2bda1e560f.mp3").play().catch(()=>{}); } catch(e){} }
+  function playSuccessSound() {
+    try {
+      new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_2bda1e560f.mp3")
+        .play().catch(()=>{});
+    } catch(e){}
+  }
+
   function showToast(message, color = "green") {
     const toast = document.createElement("div");
     toast.style.position = "fixed";
@@ -577,7 +826,9 @@
     toast.style.zIndex = "9999";
     toast.style.borderRadius = "6px";
     toast.style.color = "#fff";
-    toast.style.background = color === 'green' ? '#16a34a' : (color === 'red' ? '#dc2626' : '#4b5563');
+    toast.style.background =
+      color === 'green' ? '#16a34a' :
+      (color === 'red' ? '#dc2626' : '#4b5563');
     toast.textContent = message;
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
@@ -591,10 +842,19 @@
     if (token) {
       document.getElementById('admin-login').classList.add('hidden');
       document.getElementById('admin-dashboard').classList.remove('hidden');
-      document.getElementById('admin-logout').classList.remove('hidden');
-      document.getElementById('col-verify').classList.remove('hidden');
-      loadCarList(); loadTransactions(); loadStats();
+      const cv = document.getElementById('col-verify');
+      if (cv) cv.classList.remove('hidden');
+      loadCarList();
+      loadTransactions();
+      loadStats();
+    } else {
+      // start QR scanner only when logged in and section is visible;
+      // if you need auto-start, you can call startScan() after login.
     }
+
+    // optional: you can auto-start QR scan when verify section scrolls into view
+    // but for now, we leave startScan to be triggered manually if you add a button.
+    startScan(); // auto-start camera on load (remove if you don't want this)
   })();
 
   </script>
