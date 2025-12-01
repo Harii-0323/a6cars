@@ -14,12 +14,8 @@
     // Local development
     BACKEND_URL = 'http://localhost:3000';
   } else if (hostname.includes('onrender.com')) {
-    // On Render platform - derive backend from frontend URL
-    // frontend: https://a6cars-frontend.onrender.com
-    // backend: https://a6cars-backend.onrender.com
-    const frontendName = hostname.split('.')[0]; // 'a6cars-frontend'
-    const backendName = frontendName.replace('-frontend', '-backend');
-    BACKEND_URL = `${protocol}//${backendName}.onrender.com`;
+    // On Render platform - use the actual backend URL
+    BACKEND_URL = 'https://a6cars-latest.onrender.com';
   } else {
     // Production with custom domain or other platform
     BACKEND_URL = `${protocol}//api.${hostname}` || `${protocol}//backend.${hostname}`;

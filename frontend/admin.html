@@ -22,7 +22,7 @@
   <!-- backend base -->
   <script>
     // Adjust backend URL for dev / prod
-    const BACKEND_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'http://localhost:3000' : 'https://a6cars-backend.onrender.com';
+    const BACKEND_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'http://localhost:3000' : 'https://a6cars-latest.onrender.com';
     function api(path) {
       if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return path;
       return BACKEND_URL + path;
