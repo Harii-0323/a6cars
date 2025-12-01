@@ -82,10 +82,11 @@
 
             <!-- Menu -->
             <button class="side-link" data-section="section-addcar">Add Cars</button>
-<button class="side-link" data-section="section-managecar">Manage Cars</button>
-<button class="side-link" data-section="section-verify">Verify Payment</button>
-<button class="side-link" data-section="section-business">Business Details</button>
-<button class="side-link" data-section="all">Show All</button>
+            <br/>  <br/>
+<button class="side-link" data-section="section-managecar">Manage Cars</button>  <br/>  <br/>
+<button class="side-link" data-section="section-verify">Verify Payment</button>  <br/>  <br/>
+<button class="side-link" data-section="section-business">Business Details</button>  <br/>  <br/>
+<button class="side-link" data-section="all">Show All</button>  <br/>  <br/>
 
 
             <!-- Filters for Recent Transactions -->
@@ -509,7 +510,7 @@
           });
 
           const vb = carDiv.querySelector('.view-bookings');
-          vb && vb.addEventListener('click', () => viewCarBookings(car.id, car.brand+' '+car.model));
+          vb && vb.addEventListener('click', () => viewBookings(car.id, car.brand+' '+car.model));
           const del = carDiv.querySelector('.delete-car');
           del && del.addEventListener('click', () => deleteCar(car.id, del));
         });
