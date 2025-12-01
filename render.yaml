@@ -11,7 +11,7 @@ services:
     env: docker
     region: singapore
     plan: free
-    dockerfile: Dockerfile
+    dockerfilePath: Dockerfile
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -38,9 +38,8 @@ services:
     buildCommand: ""
     staticPublishPath: frontend
     autoDeploy: true
-    routes:
-      - path: "/"
-        destination: "/index.html"
+    # The static service will serve files from `frontend` by default.
+    # Custom route mappings were removed to satisfy render.yaml schema.
 
 # ---------------- DATABASE ----------------
 databases:
