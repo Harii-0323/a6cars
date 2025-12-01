@@ -36,6 +36,17 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+// Debug endpoint - list available routes
+app.get('/debug/routes', (req, res) => {
+  const routes = app._router.stack
+    .filter(r => r.route)
+    .map(r => ({
+      path: r.route.path,
+      methods: Object.keys(r.route.methods)
+    }));
+  res.json({ total: routes.length, routes });
+});
+
 
 // ============================================================
 // ✅ PostgreSQL Connection
@@ -540,6 +551,7 @@ app.post("/api/payment/confirm", async (req, res) => {
 // ✅ CUSTOMER: Verify payment by reference ID
 // ============================================================
 app.post("/api/verify-payment", async (req, res) => {
+  console.log("🔍 verify-payment endpoint called with body:", req.body);
   const { booking_id, payment_reference_id, customer_id } = req.body;
   
   if (!booking_id || !payment_reference_id || !customer_id) {
