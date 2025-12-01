@@ -555,7 +555,7 @@
       const token = getAdminToken();
       const headers = {};
       if (token) headers['Authorization'] = 'Bearer ' + token;
-      fetch(api(`/api/car-bookings/${carId}`), { headers })
+      fetch(api(`/api/bookings/${carId}`), { headers })
         .then(r => r.ok ? r.json() : Promise.reject('Failed'))
         .then(list => {
           body.innerHTML = '';
