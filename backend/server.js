@@ -13,7 +13,17 @@ const fs = require("fs");
 const QRCode = require("qrcode");
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: [
+    "https://a6cars-frontend-4i84.onrender.com",
+    "https://a6cars-latest.onrender.com",
+    "http://localhost:5173"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+}));
+
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
