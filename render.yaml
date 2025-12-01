@@ -10,7 +10,6 @@ services:
     name: a6cars-backend
     env: docker
     region: singapore
-    plan: free
     dockerfilePath: Dockerfile
     envVars:
       - key: DATABASE_URL
