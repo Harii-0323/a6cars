@@ -310,34 +310,65 @@
       refInput.disabled = true;
 
       try {
-          const res = await fetch(`${BACKEND_URL}/api/verify-payment`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-              booking_id, 
-              payment_reference_id: refId,
-              customer_id
-            })
-          });
+          // Try up to 2 times (first attempt + one retry) with 500ms backoff to handle cold starts/timeouts
+          let res, data;
+          const maxAttempts = 2;
+          for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            // Use AbortController to implement fetch timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s
 
-          // Defensive handling: some failures return HTML (<!DOCTYPE ...) instead of JSON
-          const contentType = res.headers.get("content-type") || "";
-          let data;
-          if (contentType.includes("application/json")) {
-            data = await res.json();
-          } else {
-            // Not JSON — capture response text for debugging and show friendly message
-            const text = await res.text();
-            console.error("/api/verify-payment returned non-JSON response:", text);
-            alert("❌ Server returned an unexpected response. Check backend logs or network.");
-            refInput.disabled = false;
-            return;
-          }
+            try {
+              res = await fetch(`${BACKEND_URL}/api/verify-payment`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ booking_id, payment_reference_id: refId, customer_id }),
+                signal: controller.signal
+              });
+            } catch (fetchErr) {
+              clearTimeout(timeoutId);
+              // If aborted or network error, retry if attempts remain
+              if (attempt < maxAttempts) {
+                console.warn(`verify-payment attempt ${attempt} failed:`, fetchErr.message, "— retrying...");
+                await new Promise(r => setTimeout(r, 500));
+                continue;
+              } else {
+                throw fetchErr;
+              }
+            }
+            clearTimeout(timeoutId);
 
-          if (!res.ok) {
-            alert("❌ " + (data.message || "Payment verification failed"));
-            refInput.disabled = false;
-            return;
+            // Defensive handling: some failures return HTML instead of JSON
+            const contentType = res.headers.get("content-type") || "";
+            if (contentType.includes("application/json")) {
+              data = await res.json();
+            } else {
+              const text = await res.text();
+              console.error("/api/verify-payment returned non-JSON response:", text);
+              if (attempt < maxAttempts) {
+                console.warn(`verify-payment attempt ${attempt} returned non-JSON — retrying...`);
+                await new Promise(r => setTimeout(r, 500));
+                continue;
+              }
+              alert("❌ Server returned an unexpected response. Check backend logs or network.");
+              refInput.disabled = false;
+              return;
+            }
+
+            if (!res.ok) {
+              // If server error (5xx), retry once
+              if (res.status >= 500 && attempt < maxAttempts) {
+                console.warn(`verify-payment attempt ${attempt} returned ${res.status} — retrying...`);
+                await new Promise(r => setTimeout(r, 500));
+                continue;
+              }
+              alert("❌ " + (data.message || "Payment verification failed"));
+              refInput.disabled = false;
+              return;
+            }
+
+            // success: break the retry loop
+            break;
           }
 
         // ✅ Payment verified! Show success
