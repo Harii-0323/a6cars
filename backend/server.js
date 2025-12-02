@@ -243,6 +243,24 @@ async function runDatabaseMigrations() {
             console.log('✅ Migrated cancelled_on -> cancelled_at');
           }
         }
+        // Ensure new audit/refund columns exist
+        if (!cols.includes('refund_percent')) {
+          await pool.query(`ALTER TABLE booking_cancellations ADD COLUMN refund_percent NUMERIC(5,2)`);
+          console.log('✅ Added refund_percent column to booking_cancellations');
+        }
+        if (!cols.includes('refund_amount')) {
+          await pool.query(`ALTER TABLE booking_cancellations ADD COLUMN refund_amount NUMERIC(10,2)`);
+          console.log('✅ Added refund_amount column to booking_cancellations');
+        }
+        if (!cols.includes('canceled_by')) {
+          await pool.query(`ALTER TABLE booking_cancellations ADD COLUMN canceled_by VARCHAR(255)`);
+          console.log('✅ Added canceled_by column to booking_cancellations');
+          // If admin_email exists, copy it
+          if (cols.includes('admin_email')) {
+            await pool.query(`UPDATE booking_cancellations SET canceled_by = admin_email WHERE canceled_by IS NULL`);
+            console.log('✅ Migrated admin_email -> canceled_by');
+          }
+        }
       } catch (mErr) {
         console.warn('⚠️ Could not migrate legacy booking_cancellations columns:', mErr.message);
       }
@@ -397,10 +415,12 @@ app.post('/api/admin/cancel-booking', verifyAdmin, async (req, res) => {
     // Mark booking cancelled
     await client.query(`UPDATE bookings SET status='cancelled' WHERE id=$1`, [booking_id]);
 
-    // Record cancellation
+    // Record cancellation with refund details
+    const refundPercent = 100; // admin cancels => full refund
     await client.query(
-      `INSERT INTO booking_cancellations (booking_id, admin_email, reason) VALUES ($1,$2,$3)`,
-      [booking_id, adminEmail, reason]
+      `INSERT INTO booking_cancellations (booking_id, reason, refund_percent, refund_amount, canceled_by, admin_email)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [booking_id, reason, refundPercent, refundAmount, adminEmail || 'admin', adminEmail]
     );
 
     // If paid, schedule full refund
