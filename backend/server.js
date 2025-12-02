@@ -415,8 +415,14 @@ app.post('/api/admin/cancel-booking', verifyAdmin, async (req, res) => {
     // Mark booking cancelled
     await client.query(`UPDATE bookings SET status='cancelled' WHERE id=$1`, [booking_id]);
 
-    // Record cancellation with refund details
+    // Admin cancellation -> prepare full refund values
     const refundPercent = 100; // admin cancels => full refund
+    let refundAmount = 0;
+    if (booking.paid) {
+      refundAmount = parseFloat(booking.paid_amount || booking.amount || 0);
+    }
+
+    // Record cancellation with refund details (refundAmount may be 0 if unpaid)
     await client.query(
       `INSERT INTO booking_cancellations (booking_id, reason, refund_percent, refund_amount, canceled_by, admin_email)
        VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -424,10 +430,7 @@ app.post('/api/admin/cancel-booking', verifyAdmin, async (req, res) => {
     );
 
     // If paid, schedule full refund
-    let refundAmount = 0;
     if (booking.paid) {
-      refundAmount = parseFloat(booking.paid_amount || booking.amount || 0);
-
       // create refund record
       await client.query(
         `INSERT INTO refunds (payment_id, booking_id, customer_id, amount, status, reason)
