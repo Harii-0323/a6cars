@@ -123,7 +123,9 @@
       container.innerHTML = `<p class="text-center text-gray-500 col-span-3">Loading your bookings...</p>`;
 
       try {
-        const res = await fetch(`${BACKEND_URL}/api/mybookings/${customer_id}`);
+        const token = localStorage.getItem('auth_token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await fetch(`${BACKEND_URL}/api/mybookings/${customer_id}`, { headers });
         const data = await res.json();
 
         if (!res.ok || !data.length) {
@@ -154,11 +156,15 @@
             <p class="text-gray-600 mb-1">Amount: ₹${bk.amount}</p>
             <p class="text-gray-600 mb-1">Payment: ${status}</p>
             <p class="text-gray-600 mb-3">Verification: ${verified}</p>
-            ${
-              !bk.paid
-                ? `<button class="bg-blue-600 text-white py-2 rounded w-full" onclick="showPaymentQR(${bk.booking_id}, ${bk.amount})">Pay Now</button>`
-                : `<button class="bg-green-600 text-white py-2 rounded w-full" onclick="downloadCollectionQR('${bk.collection_qr}', ${bk.booking_id})">Download Collection QR</button>`
-            }
+            $ {
+                !bk.paid
+                  ? `<button class="bg-blue-600 text-white py-2 rounded w-full" onclick="showPaymentQR(${bk.booking_id}, ${bk.amount})">Pay Now</button>`
+                  : `<button class="bg-green-600 text-white py-2 rounded w-full" onclick="downloadCollectionQR('${bk.collection_qr}', ${bk.booking_id})">Download Collection QR</button>`
+              }
+
+              ${bk.status !== 'cancelled' ? `
+                <button class="mt-2 bg-red-500 text-white w-full py-2 rounded" onclick="cancelBooking(${bk.booking_id})">Cancel Booking</button>
+              ` : `<p class="text-red-600 font-semibold mt-2">Cancelled</p>`}
           `;
           container.appendChild(card);
         });
@@ -197,6 +203,25 @@
       a.href = qr;
       a.download = `collection_qr_${id}.png`;
       a.click();
+    }
+
+    // Cancel booking action for customers
+    async function cancelBooking(bookingId) {
+      if (!confirm('Are you sure you want to cancel this booking?')) return;
+      try {
+        const token = localStorage.getItem('auth_token');
+        const res = await fetch(`${BACKEND_URL}/api/cancel-booking`, {
+          method: 'POST',
+          headers: Object.assign({ 'Content-Type':'application/json' }, token ? { Authorization: `Bearer ${token}` } : {}),
+          body: JSON.stringify({ booking_id: bookingId, customer_id })
+        });
+        const j = await res.json();
+        if (!res.ok) throw new Error(j.message || 'Cancel failed');
+        alert(`Booking cancelled. Refund: ₹${j.refund_amount || 0} (status: ${j.refund_status || 'pending'})`);
+        loadBookings();
+      } catch (err) {
+        alert('Error cancelling booking: ' + err.message);
+      }
     }
 
     loadBookings();

@@ -1060,6 +1060,45 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// Render car schedule and vacancies
+async function showCarSchedule(carId) {
+  try {
+    const token = getAdminToken();
+    const res = await fetch(api(`/api/admin/car-schedule/${carId}`), { headers: { Authorization: 'Bearer ' + token } });
+    if (!res.ok) throw new Error('Failed to load schedule');
+    const data = await res.json();
+
+    const out = document.getElementById('schedule-result');
+    out.innerHTML = '';
+
+    const bookings = data.bookings || [];
+    if (!bookings.length) {
+      out.innerHTML = `<p class="text-sm text-gray-500">No bookings for this car.</p>`;
+    } else {
+      const tbl = document.createElement('div');
+      tbl.innerHTML = `<div class="overflow-auto"><table class="w-full text-left text-sm border-collapse"><thead class="bg-gray-50"><tr><th class="border px-2 py-1">Booking ID</th><th class="border px-2 py-1">From</th><th class="border px-2 py-1">To</th><th class="border px-2 py-1">Status</th></tr></thead><tbody>${bookings.map(b=>`<tr><td class="border px-2 py-1">${b.id}</td><td class="border px-2 py-1">${new Date(b.start_date).toLocaleDateString()}</td><td class="border px-2 py-1">${new Date(b.end_date).toLocaleDateString()}</td><td class="border px-2 py-1">${b.status}</td></tr>`).join('')}</tbody></table></div>`;
+      out.appendChild(tbl);
+    }
+
+    // vacancies
+    const vac = data.vacancies || [];
+    if (vac.length) {
+      const vdiv = document.createElement('div');
+      vdiv.className = 'mt-3 p-3 bg-gray-50 rounded';
+      vdiv.innerHTML = `<h4 class="font-semibold">Vacancies (next 180 days)</h4>` + vac.map(v => `<div class="text-sm">${v.start} → ${v.end}</div>`).join('');
+      out.appendChild(vdiv);
+    } else {
+      const vdiv = document.createElement('div');
+      vdiv.className = 'mt-3 text-sm text-gray-500';
+      vdiv.innerText = 'No vacancy ranges (car fully free or fully booked in window).';
+      out.appendChild(vdiv);
+    }
+  } catch (err) {
+    console.error('showCarSchedule error:', err);
+    document.getElementById('schedule-result').innerHTML = `<p class="text-red-600">${err.message}</p>`;
+  }
+}
+
 // When admin dashboard becomes visible, load cancellations and schedule options
 function ensureAdminExtras() {
   loadCancellations();
