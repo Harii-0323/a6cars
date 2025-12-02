@@ -191,8 +191,7 @@
               </div>
 
             </div>
-          </div>
-          <!-- ========================= ADD CAR SECTION ========================= -->
+          </div><!-- ========================= ADD CAR SECTION ========================= -->
 <section id="section-addcar" class="hidden">
   <div class="bg-white p-4 rounded shadow">
     <h3 class="text-lg font-semibold mb-3">Add Car (Multiple Images)</h3>
@@ -326,9 +325,7 @@
       Add GST, company information, legal details and settings here later.
     </p>
   </div>
-</section>
-
-          <!-- ========================= RECENT TRANSACTIONS SECTION ========================= -->
+</section><!-- ========================= RECENT TRANSACTIONS SECTION ========================= -->
 <section id="section-transactions">
   <div class="bg-white rounded-lg shadow p-4">
 
@@ -391,8 +388,7 @@
     </div>
 
   </div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+</div><script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 
 <script>
 /* ============================================================
@@ -623,7 +619,7 @@ async function deleteCar(id) {
   if (!confirm("Delete this car and its bookings?")) return;
 
   const token = getAdminToken();
-  const headers = {
+ const headers = {
     'Content-Type':'application/json',
     'Authorization':'Bearer '+token
   };
@@ -950,6 +946,4 @@ function playSuccessSound() {
 })();
 </script>
   </body>
-</html>
-
-
+  </html>
