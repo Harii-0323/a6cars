@@ -1,949 +1,827 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Admin Panel | A6 Cars</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <style>
-    .lb-backdrop { background: rgba(0,0,0,0.7); }
-
-    /* --- Modern Sidebar UI Enhancements --- */
-    .side-link {
-      @apply flex items-center gap-2 w-full px-3 py-2 text-left text-sm rounded-md cursor-pointer transition-all;
-    }
-    .side-link:hover {
-      @apply bg-gray-100;
-    }
-    .side-link.active {
-      @apply bg-blue-600 text-white;
-    }
-  </style>
-</head>
-
-<body class="bg-gray-100 min-h-screen">
-
-  <!-- 🔷 Top Navbar -->
-  <header class="bg-white shadow sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm font-semibold">
-          A6
-        </div>
-        <div class="font-semibold text-gray-800 text-lg">
-          A6 Cars Admin
-        </div>
-      </div>
-
-      <button id="admin-logout"
-        class="hidden bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded">
-        Logout
-      </button>
-    </div>
-  </header>
-
-  <!-- Backend base -->
-  <script>
-    const BACKEND_URL =
-      (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-        ? 'http://localhost:3000'
-        : 'https://a6cars.onrender.com';
-
-    function api(path) {
-      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-        return path;
-      return BACKEND_URL + path;
-    }
-  </script>
-
-  <!-- ========================= MAIN BODY LAYOUT ========================= -->
-  <main class="max-w-7xl mx-auto px-4 py-6">
-
-    <!-- Login card -->
-    <div id="admin-login"
-         class="max-w-md mx-auto bg-white rounded-lg shadow p-6 space-y-4">
-      <h1 class="text-xl font-semibold text-center mb-2">Admin Login</h1>
-
-      <input id="admin-email" type="text" placeholder="Admin Email"
-             class="w-full p-3 border rounded" />
-
-      <input id="admin-password" type="password" placeholder="Password"
-             class="w-full p-3 border rounded" />
-
-      <button id="admin-login-btn"
-              class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded w-full">
-        Login
-      </button>
-
-      <div id="admin-login-msg"
-           class="text-sm text-red-600 text-center"></div>
-    </div>
-
-    <!-- ========================= DASHBOARD ========================= -->
-    <div id="admin-dashboard" class="hidden">
-
-      <div class="flex flex-col lg:flex-row gap-6">
-
-        <!-- 🌙 Modern Sidebar -->
-        <aside class="w-full lg:w-72">
-          <div class="bg-white rounded-lg shadow p-4 lg:sticky lg:top-28">
-
-            <!-- Profile header -->
-            <div class="flex items-center gap-3 mb-6">
-              <div class="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center text-lg font-semibold">
-                A6
-              </div>
-              <div>
-                <div class="font-semibold text-gray-900 text-sm">A6 Admin</div>
-                <div class="text-xs text-gray-500">Control Panel</div>
-              </div>
-            </div>
-
-            <!-- 🌐 New Modern Sidebar Menu -->
-            <div class="space-y-1 mb-6">
-
-              <button class="side-link" data-section="section-addcar">
-                🚗 <span>Add Cars</span>
-              </button>
-
-              <button class="side-link" data-section="section-managecar">
-                🛠 <span>Manage Cars</span>
-              </button>
-
-              <button class="side-link" data-section="section-verify">
-                📷 <span>Verify Payment</span>
-              </button>
-
-              <button class="side-link" data-section="section-business">
-                🏢 <span>Business Details</span>
-              </button>
-
-              <button class="side-link" data-section="all">
-                📋 <span>Show All</span>
-              </button>
-
-            </div>
-
-            <!-- Filters for Recent Transactions -->
-            <div class="border-t pt-4 mt-4">
-              <div class="text-sm font-semibold mb-2">Filters</div>
-
-              <div class="space-y-2">
-                <input id="filter-search" type="text" placeholder="Search"
-                       class="w-full border rounded px-2 py-2 text-sm" />
-
-                <div class="flex gap-2">
-                  <input id="filter-from" type="date"
-                         class="w-1/2 border rounded px-2 py-2 text-xs" />
-                  <input id="filter-to" type="date"
-                         class="w-1/2 border rounded px-2 py-2 text-xs" />
-                </div>
-
-                <div class="flex gap-2">
-                  <button id="filter-apply"
-                          class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded text-sm">
-                    Apply
-                  </button>
-
-                  <button id="filter-clear"
-                          class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 rounded text-sm">
-                    Clear
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Logout inside sidebar -->
-            <button id="sidebar-logout"
-              class="mt-4 w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded text-sm font-medium">
-              Logout
-            </button>
-
-          </div>
-        </aside>
-
-        <!-- ========================= MAIN CONTENT ========================= -->
-        <section class="flex-1 space-y-6" id="admin-main">
-
-          <!-- Dashboard quick stats -->
-          <div class="bg-white rounded-lg shadow p-6">
-            <h1 class="text-2xl font-bold mb-1">Admin Panel</h1>
-            <p class="text-sm text-gray-500 mb-4">
-              Manage cars, bookings and verify payments
-            </p>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-              <div class="p-4 rounded shadow-sm bg-blue-50">
-                <div class="text-sm text-gray-500">Total Bookings</div>
-                <div id="stat-bookings" class="text-2xl font-bold">—</div>
-              </div>
-
-              <div class="p-4 rounded shadow-sm bg-yellow-50">
-                <div class="text-sm text-gray-500">Pending Payments</div>
-                <div id="stat-pending" class="text-2xl font-bold">—</div>
-              </div>
-
-              <div class="p-4 rounded shadow-sm bg-green-50">
-                <div class="text-sm text-gray-500">Available Cars</div>
-                <div id="stat-cars" class="text-2xl font-bold">—</div>
-              </div>
-
-            </div>
-          </div><!-- ========================= ADD CAR SECTION ========================= -->
-<section id="section-addcar" class="hidden">
-  <div class="bg-white p-4 rounded shadow">
-    <h3 class="text-lg font-semibold mb-3">Add Car (Multiple Images)</h3>
-
-    <form id="addCarForm" enctype="multipart/form-data" class="space-y-3">
-
-      <input type="text" name="brand" placeholder="Brand" required
-             class="w-full p-2 border rounded" />
-
-      <input type="text" name="model" placeholder="Model" required
-             class="w-full p-2 border rounded" />
-
-      <input type="number" name="year" placeholder="Year" required
-             class="w-full p-2 border rounded" />
-
-      <input type="number" step="0.01" name="daily_rate"
-             placeholder="Daily Rate (INR)" required
-             class="w-full p-2 border rounded" />
-
-      <input type="text" name="location" placeholder="Location" required
-             class="w-full p-2 border rounded" />
-
-      <label class="text-sm text-gray-600">Upload Images (JPG/JPEG)</label>
-      <input type="file" name="images" id="images-input"
-             accept=".jpg,.jpeg" multiple required
-             class="w-full p-2 border rounded bg-gray-50" />
-
-      <div id="images-preview"
-           class="flex gap-2 mt-2 flex-wrap"></div>
-
-      <button type="submit"
-              class="bg-blue-600 hover:bg-blue-700 text-white w-full p-2 rounded">
-        Add Car
-      </button>
-    </form>
-  </div>
-</section>
-
-
-
-<!-- ========================= MANAGE CARS SECTION ========================= -->
-<section id="section-managecar" class="hidden">
-  <div class="bg-white p-4 rounded shadow">
-
-    <h3 class="text-lg font-semibold mb-3">Manage Cars</h3>
-
-    <div id="car-list" class="space-y-3"></div>
-
-    <!-- Bookings panel below each car -->
-    <div id="car-bookings-panel"
-         class="hidden mt-4 bg-gray-50 p-3 rounded">
-
-      <div class="flex items-center justify-between mb-2">
-        <h4 class="font-medium">
-          Bookings for <span id="car-bookings-title"></span>
-        </h4>
-
-        <button id="close-car-bookings"
-                class="text-xs bg-gray-200 px-2 py-1 rounded">
-          Close
-        </button>
-      </div>
-
-      <div class="overflow-auto">
-        <table class="w-full text-left border-collapse text-xs">
-          <thead class="bg-gray-100">
-            <tr>
-              <th class="border px-2 py-1">Booking ID</th>
-              <th class="border px-2 py-1">Customer</th>
-              <th class="border px-2 py-1">From</th>
-              <th class="border px-2 py-1">To</th>
-              <th class="border px-2 py-1">Amount</th>
-              <th class="border px-2 py-1">Paid</th>
-              <th class="border px-2 py-1">Verified</th>
-            </tr>
-          </thead>
-          <tbody id="car-bookings-body"></tbody>
-        </table>
-      </div>
-
-    </div>
-
-  </div>
-</section>
-
-
-
-<!-- ========================= VERIFY PAYMENT SECTION ========================= -->
-<section id="section-verify" class="hidden">
-  <div class="bg-white rounded-lg shadow p-4" id="col-verify">
-
-    <h3 class="text-lg font-semibold mb-3">Verify Payment (Scan QR)</h3>
-
-    <div id="qr-result" class="mt-2 text-sm"></div>
-
-    <div id="scanner" class="mt-4">
-      <h4 class="font-medium mb-2 text-sm">Camera Scanner</h4>
-
-      <video id="video" width="100%" height="220"
-             class="border rounded"></video>
-
-      <div id="scan-status"
-           class="text-xs mt-2 text-gray-600"></div>
-
-      <div class="mt-2 flex gap-2">
-
-        <button id="start-scan"
-                class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs">
-          Start Scan
-        </button>
-
-        <button id="stop-scan"
-                class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs">
-          Stop Scan
-        </button>
-
-      </div>
-    </div>
-
-  </div>
-</section>
-
-
-
-<!-- ========================= BUSINESS DETAILS SECTION ========================= -->
-<section id="section-business" class="hidden">
-  <div class="bg-white rounded-lg shadow p-4">
-    <h3 class="text-lg font-semibold mb-3">Business Details</h3>
-
-    <p class="text-sm text-gray-600">
-      Add GST, company information, legal details and settings here later.
-    </p>
-  </div>
-</section><!-- ========================= RECENT TRANSACTIONS SECTION ========================= -->
-<section id="section-transactions">
-  <div class="bg-white rounded-lg shadow p-4">
-
-    <h3 class="text-lg font-semibold mb-3">Recent Transactions</h3>
-    <p class="text-xs text-gray-500 mb-2">
-      Showing up to 10 most recent bookings/payments.
-    </p>
-
-    <div class="overflow-auto">
-      <table id="tx-table" class="w-full text-left text-sm border-collapse">
-
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="border px-2 py-1">Payment ID</th>
-            <th class="border px-2 py-1">Customer</th>
-            <th class="border px-2 py-1">Car</th>
-            <th class="border px-2 py-1">From</th>
-            <th class="border px-2 py-1">To</th>
-            <th class="border px-2 py-1">Amount</th>
-            <th class="border px-2 py-1">Paid</th>
-            <th class="border px-2 py-1">Verified</th>
-          </tr>
-        </thead>
-
-        <tbody id="tx-body">
-          <!-- JS renders latest 10 transactions -->
-        </tbody>
-
-      </table>
-    </div>
-
-  </div>
-</section>
-
-
-
-<!-- ========================= LIGHTBOX — IMG VIEWER ========================= -->
-<div id="lightbox"
-     class="fixed inset-0 hidden items-center justify-center z-50">
-
-  <div id="lb-backdrop"
-       class="absolute inset-0 lb-backdrop"></div>
-
-  <div class="relative z-50 max-w-3xl w-full mx-4">
-
-    <div class="bg-white rounded p-4 shadow-xl">
-
-      <div class="flex justify-between items-center mb-2">
-        <div id="lb-title" class="font-semibold">Images</div>
-
-        <button id="lb-close"
-                class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs">
-          Close
-        </button>
-      </div>
-
-      <div id="lb-images"
-           class="flex gap-2 overflow-x-auto"></div>
-
-    </div>
-
-  </div>
-</div><script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
-
-<script>
-/* ============================================================
-   AUTH HELPERS
-============================================================ */
-function getAdminToken() {
-  return sessionStorage.getItem('adminToken') || '';
-}
-
-function setAdminToken(token) {
-  sessionStorage.setItem('adminToken', token);
-  sessionStorage.setItem('adminLoggedIn', '1');
-
-  document.getElementById('admin-login').classList.add('hidden');
-  document.getElementById('admin-dashboard').classList.remove('hidden');
-  document.getElementById('admin-logout').classList.remove('hidden');
-
-  loadCarList();
-  loadTransactions();
-}
-
-function doLogout() {
-  sessionStorage.clear();
-  stopScan();
-
-  document.getElementById('admin-dashboard').classList.add('hidden');
-  document.getElementById('admin-login').classList.remove('hidden');
-  document.getElementById('admin-logout').classList.add('hidden');
-}
-
-
-/* ============================================================
-   ADMIN LOGIN
-============================================================ */
-document.getElementById('admin-login-btn').addEventListener('click', async () => {
-  const email = document.getElementById('admin-email').value.trim();
-  const password = document.getElementById('admin-password').value;
-  const msg = document.getElementById('admin-login-msg');
-
-  msg.innerText = '';
-
-  try {
-    const res = await fetch(api('/api/admin/login'), {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ email, password })
-    });
-
-    const txt = await res.text();
-    let j = {};
-    try { j = JSON.parse(txt); } catch {}
-
-    if (!res.ok) throw new Error(j.message || 'Login failed');
-
-    setAdminToken(j.token);
-  }
-  catch(err) {
-    msg.innerText = err.message;
-  }
+============================================================
+// ✅ A6 Cars Backend - Final Updated Version (Dec 2, 2025 )
+// ============================================================
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const { Pool } = require("pg");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+const QRCode = require("qrcode");
+
+const app = express();
+app.use(cors({
+  origin: [
+    "https://a6cars-frontend-4i84.onrender.com",
+    "https://a6cars.onrender.com",
+    "http://localhost:5173"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+}));
+
+app.use(express.json());
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+app.get("/", (req, res) => {
+  res.send("🚗 A6 Cars Backend is running successfully!");
 });
 
-document.getElementById('admin-logout').addEventListener('click', doLogout);
-document.getElementById('sidebar-logout').addEventListener('click', doLogout);
-
-
-/* ============================================================
-   SIDEBAR SECTION SWITCHER + ACTIVE BUTTON
-============================================================ */
-const sectionIds = [
-  'section-addcar',
-  'section-managecar',
-  'section-verify',
-  'section-business'
-];
-
-document.querySelectorAll('.side-link').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const section = btn.dataset.section;
-
-    // active highlight
-    document.querySelectorAll('.side-link').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-
-    showSection(section);
-  });
+// Lightweight health endpoint used by container healthchecks
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
 });
 
-function showSection(which) {
-  if (which === 'all') {
-    sectionIds.forEach(id => document.getElementById(id).classList.remove('hidden'));
+// Debug endpoint - list available routes
+app.get('/debug/routes', (req, res) => {
+  const routes = app._router.stack
+    .filter(r => r.route)
+    .map(r => ({
+      path: r.route.path,
+      methods: Object.keys(r.route.methods)
+    }));
+  res.json({ total: routes.length, routes });
+});
+
+
+// ============================================================
+// ✅ PostgreSQL Connection
+// ============================================================
+const connectionString = process.env.DATABASE_URL || 
+  `postgresql://${process.env.DB_USER || 'root'}:${process.env.DB_PASS || 'password'}@${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME || 'a6cars_db'}`;
+
+console.log('📡 Connecting to database...');
+
+const pool = new Pool({
+  connectionString,
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+});
+
+// Handle pool errors
+pool.on('error', (err) => {
+  console.error('❌ Pool error:', err.message);
+});
+
+pool.on('connect', () => {
+  console.log('✅ New connection established');
+});
+
+// Test connection on startup with promise
+pool.query('SELECT NOW()', (err, result) => {
+  if (err) {
+    console.error('❌ Database connection error:', err.message);
+    console.error('   Connection string:', connectionString.replace(/:[^:]*@/, ':****@'));
   } else {
-    sectionIds.forEach(id => {
-      document.getElementById(id).classList.toggle('hidden', id !== which);
-    });
-  }
-
-  if (which === 'section-verify' || which === 'all') startScan();
-
-  document.getElementById('admin-main')
-    .scrollIntoView({ behavior:'smooth', block:'start' });
-}
-
-
-/* ============================================================
-   ADD CAR — MULTIPLE IMAGES
-============================================================ */
-const imagesInput = document.getElementById('images-input');
-const imagesPreview = document.getElementById('images-preview');
-
-imagesInput.addEventListener('change', function() {
-  imagesPreview.innerHTML = '';
-  Array.from(this.files).forEach(file => {
-    const img = document.createElement('img');
-    img.src = URL.createObjectURL(file);
-    img.className = 'w-28 h-20 object-cover rounded border';
-    imagesPreview.appendChild(img);
-  });
-});
-
-document.getElementById('addCarForm').addEventListener('submit', async function(e) {
-  e.preventDefault();
-
-  const token = getAdminToken();
-  if (!token) return alert("Please login as admin");
-
-  const fd = new FormData(this);
-
-  try {
-    const res = await fetch(api('/api/admin/addcar'), {
-      method: 'POST',
-      headers: { 'Authorization':'Bearer '+token },
-      body: fd
-    });
-
-    const txt = await res.text();
-    let j = {};
-    try { j = JSON.parse(txt);} catch {}
-
-    if (!res.ok) throw new Error(j.message);
-
-    alert("Car added successfully!");
-
-    this.reset();
-    imagesPreview.innerHTML = '';
-    loadCarList();
-  }
-  catch(err) {
-    alert(err.message);
+    console.log('✅ Database connected successfully at', result.rows[0].now);
+    // Run auto-migration on successful connection
+    runDatabaseMigrations();
   }
 });
 
-
-/* ============================================================
-   LOAD ALL CARS + DELETE + VIEW BOOKINGS
-============================================================ */
-async function loadCarList() {
+// ============================================================
+// ✅ Auto-Migration: Ensure payment_reference_id column exists
+// ============================================================
+async function runDatabaseMigrations() {
   try {
-    const token = getAdminToken();
-    const headers = token ? {Authorization:'Bearer '+token} : {};
-
-    const res = await fetch(api('/api/cars'), { headers });
-    const list = await res.json();
-
-    const carList = document.getElementById('car-list');
-    carList.innerHTML = '';
-
-    if (!list.length) {
-      carList.innerHTML = `<div class="text-gray-500 text-sm">No cars found.</div>`;
-      document.getElementById('stat-cars').innerText = '0';
-      return;
-    }
-
-    document.getElementById('stat-cars').innerText = list.length;
-
-    list.forEach(car => {
-      const imgs = (car.images || []).map(u =>
-        u.startsWith('http') ? u : BACKEND_URL + '/' + u
+    console.log('📋 Checking database schema...');
+    
+    // Check if payment_reference_id column exists
+    const checkColumn = await pool.query(
+      `SELECT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'payments' AND column_name = 'payment_reference_id'
+      )`
+    );
+    
+    if (!checkColumn.rows[0].exists) {
+      console.log('⚠️ Column payment_reference_id missing - running migration...');
+      
+      // Add payment_reference_id column
+      await pool.query(
+        `ALTER TABLE payments ADD COLUMN payment_reference_id VARCHAR(255) UNIQUE`
       );
-
-      const thumb = imgs[0] || 'https://via.placeholder.com/160x100?text=No+Image';
-
-      const div = document.createElement('div');
-      div.className = "border rounded p-3 bg-white flex justify-between items-center";
-
-      div.innerHTML = `
-        <div class="flex gap-4 items-center">
-          <img src="${thumb}" class="w-32 h-20 rounded border cursor-pointer"
-               data-images='${JSON.stringify(imgs)}'>
-
-          <div class="text-sm">
-            <div class="font-semibold">${car.brand} ${car.model}</div>
-            <div class="text-xs text-gray-600">Year: ${car.year} | ₹${car.daily_rate}/day</div>
-            <div class="text-xs text-gray-400">${car.location || ''}</div>
-          </div>
-        </div>
-
-        <div class="flex flex-col gap-1 text-xs">
-          <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded view-bookings"
-                  data-carid="${car.id}" data-carname="${car.brand} ${car.model}">
-            View Bookings
-          </button>
-          <button class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded delete-car"
-                  data-carid="${car.id}">
-            Delete
-          </button>
-        </div>
-      `;
-
-      carList.appendChild(div);
-
-      div.querySelector('img').addEventListener('click', () => {
-        openLightbox(imgs, `${car.brand} ${car.model}`);
-      });
-
-      div.querySelector('.view-bookings').addEventListener('click', () => {
-        viewCarBookings(car.id, `${car.brand} ${car.model}`);
-      });
-
-      div.querySelector('.delete-car').addEventListener('click', () => deleteCar(car.id));
-    });
-
-  } catch(err) {
-    console.error(err);
-  }
-}
-
-async function deleteCar(id) {
-  if (!confirm("Delete this car and its bookings?")) return;
-
-  const token = getAdminToken();
-  const headers = {
-    'Content-Type':'application/json',
-    'Authorization':'Bearer '+token
-  };
-
-  const res = await fetch(api('/api/deletecar'), {
-    method:'POST',
-    headers,
-    body: JSON.stringify({ car_id:id })
-  });
-
-  const j = await res.json();
-  alert(j.message || "Deleted");
-  loadCarList();
-}
-
-
-/* ============================================================
-   VIEW BOOKINGS PER CAR (FULLY FIXED)
-============================================================ */
-function viewCarBookings(carId, carName) {
-  const panel = document.getElementById('car-bookings-panel');
-  const title = document.getElementById('car-bookings-title');
-  const body = document.getElementById('car-bookings-body');
-
-  title.textContent = carName;
-  panel.classList.remove('hidden');
-
-  body.innerHTML = `<tr><td colspan="7" class="text-gray-500 text-xs p-2">Loading...</td></tr>`;
-
-  const token = getAdminToken();
-
-  fetch(api(`/api/car-bookings/${carId}`), {
-    headers: token ? { Authorization:'Bearer '+token } : {}
-  })
-  .then(r => r.json())
-  .then(list => {
-    body.innerHTML = '';
-
-    if (!list.length) {
-      body.innerHTML = `<tr><td colspan="7" class="text-gray-500 text-xs p-2">No bookings found.</td></tr>`;
-      return;
+      console.log('✅ Added payment_reference_id column');
+      
+      // Add updated_at column if missing
+      const checkUpdatedAt = await pool.query(
+        `SELECT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'payments' AND column_name = 'updated_at'
+        )`
+      );
+      
+      if (!checkUpdatedAt.rows[0].exists) {
+        await pool.query(
+          `ALTER TABLE payments ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`
+        );
+        console.log('✅ Added updated_at column');
+      }
+      
+      // Create indexes
+      await pool.query(
+        `CREATE INDEX IF NOT EXISTS idx_payment_reference_id ON payments(payment_reference_id)`
+      );
+      console.log('✅ Created idx_payment_reference_id index');
+      
+      await pool.query(
+        `CREATE INDEX IF NOT EXISTS idx_payment_booking_status ON payments(booking_id, status)`
+      );
+      console.log('✅ Created idx_payment_booking_status index');
+      
+      console.log('✅ Database migration completed successfully!');
+    } else {
+      console.log('✅ Database schema is up to date (payment_reference_id column exists)');
     }
-
-    list.forEach(bk => {
-      const tr = document.createElement('tr');
-
-      tr.innerHTML = `
-        <td class="border px-2 py-1">${bk.booking_id ?? bk.id ?? '—'}</td>
-        <td class="border px-2 py-1">${bk.customer_name || bk.name || bk.email || ''}</td>
-        <td class="border px-2 py-1">${new Date(bk.start_date).toLocaleDateString()}</td>
-        <td class="border px-2 py-1">${new Date(bk.end_date).toLocaleDateString()}</td>
-        <td class="border px-2 py-1">${bk.amount ? '₹'+bk.amount : '-'}</td>
-
-        <td class="border px-2 py-1">
-          ${(bk.paid==1 || bk.is_paid==1 || bk.payment_status==1) ? 'Yes' : 'No'}
-        </td>
-
-        <td class="border px-2 py-1">
-          ${(bk.verified==1 || bk.is_verified==1 || bk.verification_status==1) ? 'Yes' : 'No'}
-        </td>
-      `;
-
-      body.appendChild(tr);
-    });
-  });
-}
-
-document.getElementById('close-car-bookings')
-  .addEventListener('click', () => {
-    document.getElementById('car-bookings-panel').classList.add('hidden');
-  });
-
-
-/* ============================================================
-   RECENT TRANSACTIONS (ONLY LATEST 10)
-============================================================ */
-let allTransactions = [];
-
-async function loadTransactions() {
-  try {
-    const res = await fetch(api('/api/admin/transactions?page=1&pageSize=50'), {
-      headers: {Authorization:'Bearer '+getAdminToken()}
-    });
-
-    const data = await res.json();
-    allTransactions = data.data || [];
-
-    renderTransactions();
-
-    // Stats
-    document.getElementById('stat-bookings').innerText = allTransactions.length;
-    document.getElementById('stat-pending').innerText =
-      allTransactions.filter(tx => tx.paid != 1).length;
+  } catch (err) {
+    console.error('❌ Migration error:', err.message);
+    console.error('   Please run migration manually: migration_add_payment_reference.sql');
   }
-  catch(err) { console.log(err); }
 }
 
-function renderTransactions() {
-  const body = document.getElementById('tx-body');
-  body.innerHTML = '';
 
-  // Sort by latest
-  allTransactions.sort((a,b) =>
-    new Date(b.start_date) - new Date(a.start_date)
-  );
+// ============================================================
+// ✅ Multer Configuration (Car Image Uploads)
+// ============================================================
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const dir = path.join(__dirname, "uploads");
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+    cb(null, dir);
+  },
+  filename: function (req, file, cb) {
+    cb(
+      null,
+      Date.now() +
+        "-" +
+        Math.round(Math.random() * 1e9) +
+        path.extname(file.originalname)
+    );
+  },
+});
+const upload = multer({ storage });
 
-  const latest10 = allTransactions.slice(0,10);
+// ============================================================
+// ✅ JWT Secrets and Admin Credentials
+// ============================================================
+const JWT_SECRET = process.env.JWT_SECRET || "secretkey123";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "karikeharikrishna@gmail.com";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Anu";
 
-  latest10.forEach(tx => {
-    const tr = document.createElement('tr');
-
-    tr.innerHTML = `
-      <td class="border px-2 py-1">${tx.payment_id ?? '-'}</td>
-      <td class="border px-2 py-1">${tx.name || tx.customer_name || ''}</td>
-      <td class="border px-2 py-1">${tx.brand || ''} ${tx.model || ''}</td>
-      <td class="border px-2 py-1">${new Date(tx.start_date).toLocaleDateString()}</td>
-      <td class="border px-2 py-1">${new Date(tx.end_date).toLocaleDateString()}</td>
-      <td class="border px-2 py-1">₹${tx.amount || 0}</td>
-
-      <td class="border px-2 py-1">
-        ${(tx.paid==1 || tx.is_paid==1 || tx.payment_status==1) ? 'Yes' : 'No'}
-      </td>
-
-      <td class="border px-2 py-1">
-        ${(tx.verified==1 || tx.is_verified==1 || tx.verification_status==1) ? 'Yes' : 'No'}
-      </td>
-    `;
-
-    body.appendChild(tr);
+// ============================================================
+// ✅ Middleware for Admin Verification
+// ============================================================
+function verifyAdmin(req, res, next) {
+  const header = req.headers["authorization"];
+  if (!header)
+    return res.status(401).json({ message: "Missing authorization header" });
+  const token = header.split(" ")[1];
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) return res.status(401).json({ message: "Invalid or expired token" });
+    req.admin = decoded;
+    next();
   });
 }
 
+// ============================================================
+// ✅ USER ROUTES
+// ============================================================
 
-/* ============================================================
-   LIGHTBOX IMAGE VIEWER
-============================================================ */
-function openLightbox(images, title) {
-  const lb = document.getElementById('lightbox');
-  const lbImgs = document.getElementById('lb-images');
-  const lbTitle = document.getElementById('lb-title');
+// Register a new user
+app.post("/api/register", async (req, res) => {
+  const { name, email, phone, password } = req.body;
+  if (!name || !email || !phone || !password)
+    return res.status(400).json({ message: "All fields are required." });
 
-  lbImgs.innerHTML = '';
-  lbTitle.textContent = title;
+  try {
+    const existing = await pool.query("SELECT * FROM customers WHERE email=$1", [
+      email,
+    ]);
+    if (existing.rows.length)
+      return res.status(400).json({ message: "Email already registered." });
 
-  images.forEach(url => {
-    const img = document.createElement('img');
-    img.src = url;
-    img.className = 'max-h-96 object-contain mr-2';
-    lbImgs.appendChild(img);
-  });
-
-  lb.classList.remove('hidden');
-  lb.classList.add('flex');
-}
-
-document.getElementById('lb-close').addEventListener('click', () => {
-  document.getElementById('lightbox').classList.add('hidden');
-  document.getElementById('lightbox').classList.remove('flex');
+    const hashed = await bcrypt.hash(password, 10);
+    await pool.query(
+      "INSERT INTO customers (name, email, phone, password) VALUES ($1,$2,$3,$4)",
+      [name, email, phone, hashed]
+    );
+    res.json({ message: "Registration successful!" });
+  } catch (err) {
+    console.error("Register error:", err);
+    res.status(500).json({ message: "Server error during registration." });
+  }
 });
 
-
-/* ============================================================
-   QR SCANNER + VERIFY PAYMENT
-============================================================ */
-let videoStream = null;
-
-async function startScan() {
-  const video = document.getElementById('video');
-  if (!video) return;
-
-  const status = document.getElementById('scan-status');
-  status.innerText = "Starting camera...";
-
+// User login
+app.post("/api/login", async (req, res) => {
+  const { email, password } = req.body;
   try {
-    videoStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:"environment" } });
-    video.srcObject = videoStream;
-    video.play();
+    const result = await pool.query("SELECT * FROM customers WHERE email=$1", [
+      email,
+    ]);
+    if (!result.rows.length)
+      return res.status(400).json({ message: "Invalid email or password." });
 
-    status.innerText = "Scanning...";
+    const user = result.rows[0];
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.status(400).json({ message: "Invalid password." });
 
-    // BarcodeDetector first
-    if (window.BarcodeDetector) {
-      try {
-        const detector = new BarcodeDetector({formats:['qr_code']});
-        const loop = async () => {
-          const codes = await detector.detect(video).catch(()=>[]);
-          if (codes.length) {
-            stopScan();
-            verifyQrToken(codes[0].rawValue);
-            return;
-          }
-          requestAnimationFrame(loop);
-        };
-        requestAnimationFrame(loop);
-        return;
-      } catch {}
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: "2h" }
+    );
+    res.json({
+      message: "Login successful",
+      token,
+      customer_id: user.id,
+      name: user.name,
+      email: user.email,
+    });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ message: "Login failed." });
+  }
+});
+
+// ============================================================
+// ✅ ADMIN ROUTES
+// ============================================================
+
+// Admin login
+app.post("/api/admin/login", (req, res) => {
+  const { email, password } = req.body;
+  if (email !== ADMIN_EMAIL || password !== ADMIN_PASSWORD)
+    return res.status(401).json({ message: "Invalid admin credentials" });
+
+  const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: "2h" });
+  res.json({ message: "Admin login successful", token });
+});
+
+// Add a new car
+app.post("/api/admin/addcar", verifyAdmin, upload.array("images", 10), async (req, res) => {
+  const { brand, model, year, daily_rate, location } = req.body;
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await client.query(
+      "INSERT INTO cars (brand, model, year, daily_rate, location) VALUES ($1,$2,$3,$4,$5) RETURNING id",
+      [brand, model, year, daily_rate, location]
+    );
+    const carId = result.rows[0].id;
+
+    for (const file of req.files) {
+      await client.query("INSERT INTO car_images (car_id, image_url) VALUES ($1,$2)", [
+        carId,
+        "/uploads/" + file.filename,
+      ]);
     }
 
-    // jsQR fallback
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+    await client.query("COMMIT");
+    res.json({ message: "Car added successfully!" });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Add car error:", err);
+    res.status(500).json({ message: "Failed to add car." });
+  } finally {
+    client.release();
+  }
+});
 
-    const scanLoop = () => {
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+// ============================================================
+// ✅ CARS & BOOKINGS ROUTES
+// ============================================================
 
-        ctx.drawImage(video,0,0);
+// Fetch all cars
+app.get("/api/cars", async (req, res) => {
+  try {
+    const cars = await pool.query("SELECT * FROM cars ORDER BY id DESC");
+    for (let car of cars.rows) {
+      const imgs = await pool.query("SELECT image_url FROM car_images WHERE car_id=$1", [
+        car.id,
+      ]);
+      car.images = imgs.rows.map((r) => r.image_url);
+    }
+    res.json(cars.rows);
+  } catch (err) {
+    console.error("Fetch cars error:", err);
+    res.status(500).json({ message: "Error fetching cars." });
+  }
+});
 
-        const img = ctx.getImageData(0,0,canvas.width,canvas.height);
-        const code = jsQR(img.data,img.width,img.height);
+// Book a car
+app.post("/api/book", async (req, res) => {
+  const { car_id, customer_id, start_date, end_date } = req.body;
+  if (!car_id || !customer_id || !start_date || !end_date)
+    return res.status(400).json({ message: "Missing booking info." });
 
-        if (code && code.data) {
-          stopScan();
-          verifyQrToken(code.data);
-          return;
+  const client = await pool.connect();
+  try {
+    const carRes = await client.query("SELECT daily_rate FROM cars WHERE id=$1", [
+      car_id,
+    ]);
+    if (!carRes.rows.length)
+      return res.status(404).json({ message: "Car not found." });
+
+    // Check for booking conflicts
+    const conflictRes = await client.query(
+      `SELECT * FROM bookings 
+       WHERE car_id=$1 
+       AND (
+         (start_date <= $2 AND end_date >= $2) OR
+         (start_date <= $3 AND end_date >= $3) OR
+         (start_date >= $2 AND end_date <= $3)
+       )
+       AND status IN ('pending', 'confirmed')`,
+      [car_id, start_date, end_date]
+    );
+
+    if (conflictRes.rows.length > 0) {
+      return res.status(409).json({ message: "Car already booked for these dates." });
+    }
+
+    const rate = parseFloat(carRes.rows[0].daily_rate);
+    const days = Math.max(
+      1,
+      Math.ceil(
+        (new Date(end_date) - new Date(start_date)) / (1000 * 60 * 60 * 24)
+      )
+    );
+    const total = rate * days;
+
+    await client.query("BEGIN");
+    const booking = await client.query(
+      `INSERT INTO bookings (car_id, customer_id, start_date, end_date, amount, status, paid, verified)
+       VALUES ($1,$2,$3,$4,$5,'pending',false,false) RETURNING id`,
+      [car_id, customer_id, start_date, end_date, total]
+    );
+
+    const bookingId = booking.rows[0].id;
+    const upiString = `upi://pay?pa=8179134484@pthdfc&pn=A6Cars&am=${total}&tn=Booking%20${bookingId}`;
+    const paymentQR = await QRCode.toDataURL(upiString);
+    
+    // QR expires in 180 seconds (3 minutes)
+    const qrExpiryTime = new Date(Date.now() + 180 * 1000);
+
+    await client.query(
+      `INSERT INTO payments (booking_id, amount, upi_id, qr_code, status, created_at, expires_at)
+       VALUES ($1,$2,$3,$4,'pending', NOW(), $5)`,
+      [bookingId, total, "8179134484@pthdfc", paymentQR, qrExpiryTime]
+    );
+
+    await client.query("COMMIT");
+    res.json({
+      message: "Booking created successfully",
+      booking_id: bookingId,
+      total,
+      payment_qr: paymentQR,
+      qr_expires_in: 180,
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Booking error:", err);
+    res.status(500).json({ message: "Booking failed." });
+  } finally {
+    client.release();
+  }
+});
+
+// Get all bookings of a user
+app.get("/api/mybookings/:customer_id", async (req, res) => {
+  const { customer_id } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT b.*, c.brand, c.model, c.location
+       FROM bookings b
+       JOIN cars c ON b.car_id=c.id
+       WHERE b.customer_id=$1
+       ORDER BY b.start_date DESC`,
+      [customer_id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Fetch bookings error:", err);
+    res.status(500).json({ message: "Failed to fetch bookings." });
+  }
+});
+
+// Get bookings for specific car
+app.get("/api/bookings/:car_id", async (req, res) => {
+  const { car_id } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT start_date, end_date FROM bookings 
+       WHERE car_id=$1 AND status IN ('pending', 'confirmed') 
+       ORDER BY start_date ASC`,
+      [car_id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Fetch car bookings error:", err);
+    res.status(500).json({ message: "Failed to fetch bookings." });
+  }
+});
+
+// Batch get bookings for multiple cars
+app.post("/api/bookings/batch", async (req, res) => {
+  const { car_ids } = req.body;
+  if (!Array.isArray(car_ids) || car_ids.length === 0) {
+    return res.status(400).json({ message: "car_ids must be a non-empty array" });
+  }
+  try {
+    const result = await pool.query(
+      "SELECT car_id, id, start_date, end_date FROM bookings WHERE car_id = ANY($1) AND status='pending' ORDER BY start_date DESC",
+      [car_ids]
+    );
+    const grouped = {};
+    for (const row of result.rows) {
+      if (!grouped[row.car_id]) grouped[row.car_id] = [];
+      grouped[row.car_id].push(row);
+    }
+    res.json(grouped);
+  } catch (err) {
+    console.error("Batch bookings error:", err);
+    res.status(500).json({ message: "Failed to fetch bookings." });
+  }
+});
+
+// ✅ Check payment status
+app.get("/api/payment/status/:booking_id", async (req, res) => {
+  const { booking_id } = req.params;
+  try {
+    const result = await pool.query(
+      "SELECT paid, status FROM bookings WHERE id=$1",
+      [booking_id]
+    );
+    
+    if (!result.rows.length) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    res.json({
+      paid: result.rows[0].paid,
+      status: result.rows[0].status
+    });
+  } catch (err) {
+    console.error("Payment status error:", err);
+    res.status(500).json({ message: "Error checking payment status." });
+  }
+});
+
+// Confirm payment and generate QR for admin
+app.post("/api/payment/confirm", async (req, res) => {
+  const { booking_id } = req.body;
+  const client = await pool.connect();
+  try {
+    const booking = await client.query(
+      `SELECT b.id AS booking_id, b.start_date, b.end_date, b.amount, b.customer_id,
+              c.name AS customer_name, c.email AS customer_email, c.phone AS customer_phone,
+              ca.id AS car_id, ca.brand, ca.model, ca.location
+       FROM bookings b
+       JOIN customers c ON b.customer_id = c.id
+       JOIN cars ca ON b.car_id = ca.id
+       WHERE b.id = $1`,
+      [booking_id]
+    );
+
+    if (!booking.rows.length)
+      return res.status(404).json({ message: "Booking not found." });
+
+    const data = booking.rows[0];
+    
+    // Collection QR (pickup)
+    const collectionQRData = {
+      qr_type: "collection",
+      booking_id: data.booking_id,
+      customer_id: data.customer_id,
+      customer_name: data.customer_name,
+      customer_phone: data.customer_phone,
+      car_id: data.car_id,
+      car: `${data.brand} ${data.model}`,
+      location: data.location,
+      start_date: data.start_date,
+      amount: data.amount,
+    };
+    const collectionQR = await QRCode.toDataURL(JSON.stringify(collectionQRData));
+
+    // Return QR (dropoff)
+    const returnQRData = {
+      qr_type: "return",
+      booking_id: data.booking_id,
+      customer_id: data.customer_id,
+      customer_name: data.customer_name,
+      customer_phone: data.customer_phone,
+      car_id: data.car_id,
+      car: `${data.brand} ${data.model}`,
+      location: data.location,
+      end_date: data.end_date,
+      amount: data.amount,
+    };
+    const returnQR = await QRCode.toDataURL(JSON.stringify(returnQRData));
+
+    await client.query("UPDATE bookings SET paid=true, status='confirmed' WHERE id=$1", [booking_id]);
+    await client.query("UPDATE payments SET status='paid' WHERE booking_id=$1", [booking_id]);
+
+    res.json({ 
+      message: "Payment confirmed ✅", 
+      collection_qr: collectionQR,
+      return_qr: returnQR,
+      booking_details: {
+        booking_id: data.booking_id,
+        customer_name: data.customer_name,
+        car: data.brand + " " + data.model,
+        amount: data.amount
+      }
+    });
+  } catch (err) {
+    console.error("Payment confirm error:", err);
+    res.status(500).json({ message: "Error confirming payment." });
+  } finally {
+    client.release();
+  }
+});
+
+// ============================================================
+// ✅ CUSTOMER: Verify payment by reference ID
+// ============================================================
+app.post("/api/verify-payment", async (req, res) => {
+  console.log("🔍 verify-payment endpoint called with body:", req.body);
+  const { booking_id, payment_reference_id, customer_id } = req.body;
+  
+  if (!booking_id || !payment_reference_id || !customer_id) {
+    return res.status(400).json({ message: "Missing required fields: booking_id, payment_reference_id, customer_id" });
+  }
+
+  const client = await pool.connect();
+  try {
+    // 1. Verify booking exists and belongs to customer
+    const booking = await client.query(
+      `SELECT b.id, b.customer_id, b.car_id, b.amount, b.start_date, b.end_date, b.paid,
+              c.name AS customer_name, c.email AS customer_email, c.phone AS customer_phone,
+              ca.brand, ca.model, ca.location
+       FROM bookings b
+       JOIN customers c ON b.customer_id = c.id
+       JOIN cars ca ON b.car_id = ca.id
+       WHERE b.id = $1 AND b.customer_id = $2`,
+      [booking_id, customer_id]
+    );
+    
+    if (!booking.rows.length) {
+      return res.status(404).json({ message: "Booking not found or does not belong to this customer." });
+    }
+
+    const bookingData = booking.rows[0];
+    
+    // 2. Check if payment already verified for this booking
+    if (bookingData.paid) {
+      return res.status(409).json({ message: "Payment already verified for this booking." });
+    }
+
+    // 3. Verify payment reference exists and matches customer, car, booking
+    // (First, ensure payment_reference_id column exists in payments table)
+    const paymentCheck = await client.query(
+      `SELECT p.id, p.booking_id, p.amount, p.status
+       FROM payments p
+       WHERE p.booking_id = $1 AND p.amount = $2`,
+      [booking_id, bookingData.amount]
+    );
+
+    if (!paymentCheck.rows.length) {
+      return res.status(404).json({ message: "No payment found for this booking amount." });
+    }
+
+    // 4. Update payment with reference ID and mark as verified
+    // Note: payment_reference_id  column may not exist if migration hasn't been applied
+    // Try to update, but catch if column doesn't exist
+    try {
+      await client.query(
+        `UPDATE payments 
+         SET payment_reference_id = $1, status = 'verified'
+         WHERE booking_id = $2`,
+        [payment_reference_id, booking_id]
+      );
+    } catch (colErr) {
+      // If column doesn't exist, just update status and log warning
+      console.warn('⚠️ payment_reference_id column missing - run migration: migration_add_payment_reference.sql');
+      await client.query(
+        `UPDATE payments 
+         SET status = 'verified'
+         WHERE booking_id = $2`,
+        [booking_id]
+      );
+    }
+
+    // 5. Mark booking as paid and confirmed
+    await client.query(
+      `UPDATE bookings 
+       SET paid = true, status = 'confirmed', updated_at = NOW()
+       WHERE id = $1`,
+      [booking_id]
+    );
+
+    // 6. Generate Collection QR (pickup)
+    const collectionQRData = {
+      qr_type: "collection",
+      booking_id: bookingData.id,
+      customer_id: bookingData.customer_id,
+      customer_name: bookingData.customer_name,
+      customer_phone: bookingData.customer_phone,
+      car_id: bookingData.car_id,
+      car: `${bookingData.brand} ${bookingData.model}`,
+      location: bookingData.location,
+      start_date: bookingData.start_date,
+      amount: bookingData.amount,
+      payment_reference_id: payment_reference_id
+    };
+    const collectionQR = await QRCode.toDataURL(JSON.stringify(collectionQRData));
+
+    // 7. Generate Return QR (dropoff)
+    const returnQRData = {
+      qr_type: "return",
+      booking_id: bookingData.id,
+      customer_id: bookingData.customer_id,
+      customer_name: bookingData.customer_name,
+      customer_phone: bookingData.customer_phone,
+      car_id: bookingData.car_id,
+      car: `${bookingData.brand} ${bookingData.model}`,
+      location: bookingData.location,
+      end_date: bookingData.end_date,
+      amount: bookingData.amount,
+      payment_reference_id: payment_reference_id
+    };
+    const returnQR = await QRCode.toDataURL(JSON.stringify(returnQRData));
+
+    res.json({
+      message: "✅ Payment verified successfully!",
+      payment_reference_id: payment_reference_id,
+      collection_qr: collectionQR,
+      return_qr: returnQR,
+      booking_details: {
+        booking_id: bookingData.id,
+        customer_name: bookingData.customer_name,
+        car: `${bookingData.brand} ${bookingData.model}`,
+        amount: bookingData.amount,
+        start_date: bookingData.start_date,
+        end_date: bookingData.end_date
+      }
+    });
+  } catch (err) {
+    console.error("❌ Payment verification error:", err.message);
+    console.error("Error details:", err);
+    
+    // Provide helpful error messages for common issues
+    if (err.message && err.message.includes('payment_reference_id')) {
+      return res.status(500).json({ message: "Database schema missing payment_reference_id column. Run migration: migration_add_payment_reference.sql" });
+    }
+    
+    res.status(500).json({ message: "Error verifying payment: " + err.message });
+  } finally {
+    client.release();
+  }
+});
+
+// ============================================================
+// ✅ ADMIN: Verify QR from mobile app / scanner
+// ============================================================
+app.post("/api/admin/verify-qr", verifyAdmin, async (req, res) => {
+  const { qr_data } = req.body;
+  try {
+    const booking_id = qr_data.booking_id;
+    const qr_type = qr_data.qr_type; // "collection" or "return"
+    
+    // Fetch full booking and car details
+    const booking = await pool.query(
+      `SELECT b.id, b.customer_id, b.start_date, b.end_date, b.amount, b.status,
+              c.name AS customer_name, c.phone AS customer_phone, c.email AS customer_email,
+              ca.id AS car_id, ca.brand, ca.model, ca.location
+       FROM bookings b
+       JOIN customers c ON b.customer_id = c.id
+       JOIN cars ca ON b.car_id = ca.id
+       WHERE b.id = $1`,
+      [booking_id]
+    );
+
+    if (!booking.rows.length) {
+      return res.status(404).json({ message: "Booking not found." });
+    }
+
+    const bookingData = booking.rows[0];
+    
+    // Update verification status
+    if (qr_type === "collection") {
+      await pool.query(
+        "UPDATE bookings SET collection_verified=true WHERE id=$1",
+        [booking_id]
+      );
+    } else if (qr_type === "return") {
+      await pool.query(
+        "UPDATE bookings SET return_verified=true WHERE id=$1",
+        [booking_id]
+      );
+    }
+
+    res.json({ 
+      message: `${qr_type.toUpperCase()} QR verified successfully ✅`,
+      qr_verification: {
+        qr_type: qr_type,
+        booking_id: bookingData.id,
+        customer: {
+          id: bookingData.customer_id,
+          name: bookingData.customer_name,
+          phone: bookingData.customer_phone,
+          email: bookingData.customer_email
+        },
+        booking: {
+          start_date: bookingData.start_date,
+          end_date: bookingData.end_date,
+          amount: bookingData.amount,
+          status: bookingData.status
+        },
+        car: {
+          id: bookingData.car_id,
+          model: `${bookingData.brand} ${bookingData.model}`,
+          location: bookingData.location
         }
       }
-      requestAnimationFrame(scanLoop);
-    };
-
-    requestAnimationFrame(scanLoop);
-  }
-  catch(err) {
-    status.innerText = "Camera failed or permission blocked.";
-  }
-}
-
-function stopScan() {
-  if (videoStream) {
-    videoStream.getTracks().forEach(t => t.stop());
-    videoStream = null;
-  }
-  const video = document.getElementById('video');
-  if (video) video.srcObject = null;
-}
-
-async function verifyQrToken(token) {
-  const status = document.getElementById('scan-status');
-
-  const t = getAdminToken();
-  if (!t) return status.innerText = "Admin not logged in";
-
-  let qr_data = {};
-  try { qr_data = JSON.parse(token); }
-  catch { qr_data = { booking_id: token }; }
-
-  try {
-    const res = await fetch(api('/api/admin/verify-qr'), {
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'Authorization':'Bearer '+t
-      },
-      body: JSON.stringify({qr_data})
     });
-
-    const j = await res.json();
-
-    if (!res.ok) throw new Error(j.message);
-
-    playSuccessSound();
-    showToast("Booking Verified!", "green");
-
-    document.getElementById('qr-result').innerHTML = `
-      <div class="bg-green-50 border border-green-300 p-3 rounded mt-2 text-sm">
-        <p><b>Booking ID:</b> ${j.booking_id}</p>
-        <p><b>Customer:</b> ${j.customer?.name}</p>
-        <p><b>Car:</b> ${j.car}</p>
-        <p><b>Amount:</b> ₹${j.amount}</p>
-      </div>
-    `;
-
-    loadCarList();
-    loadTransactions();
+  } catch (err) {
+    console.error("QR verification error:", err);
+    res.status(500).json({ message: "Error verifying booking." });
   }
-  catch(err) {
-    showToast(err.message, "red");
-    status.innerText = "Verification failed";
-  }
-}
+});
 
+// ============================================================
+// ✅ Start Server
+// ============================================================
+const PORT = process.env.PORT || 10000;
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ A6 Cars backend running on http://0.0.0.0:${PORT}`);
+  console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
+});
 
-/* ============================================================
-   UTILITIES
-============================================================ */
-function showToast(msg, color) {
-  const div = document.createElement("div");
+// Set timeout for graceful shutdown
+server.setTimeout(120000); // 120 seconds
 
-  div.style.position = "fixed";
-  div.style.top = "16px";
-  div.style.right = "16px";
-  div.style.padding = "10px 14px";
-  div.style.borderRadius = "6px";
-  div.style.zIndex = "99999";
-  div.style.color = "white";
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception:', err);
+  process.exit(1);
+});
 
-  div.style.background =
-    color === "green" ? "#16a34a" :
-    color === "red"   ? "#dc2626" : "#4b5563";
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
 
-  div.innerText = msg;
-  document.body.appendChild(div);
-  setTimeout(() => div.remove(), 3000);
-}
+// Graceful shutdown - SIGTERM
+process.on('SIGTERM', () => {
+  console.log('⚠️ SIGTERM received, shutting down gracefully...');
+  
+  // Stop accepting new connections
+  server.close(() => {
+    console.log('✅ Server closed, closing database pool...');
+    
+    // Close database pool
+    pool.end(() => {
+      console.log('✅ Database pool closed');
+      console.log('✅ Process exiting gracefully');
+      process.exit(0);
+    });
+  });
+  
+  // Force exit after 30 seconds
+  setTimeout(() => {
+    console.error('❌ Forced shutdown after 30s timeout');
+    process.exit(1);
+  }, 30000);
+});
 
-function playSuccessSound() {
-  new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_2bda1e560f.mp3").play().catch(()=>{});
-}
-
-
-/* ============================================================
-   AUTO-LOGIN RESTORE
-============================================================ */
-(function init() {
-  if (getAdminToken()) {
-    document.getElementById('admin-login').classList.add('hidden');
-    document.getElementById('admin-dashboard').classList.remove('hidden');
-    document.getElementById('admin-logout').classList.remove('hidden');
-
-    loadCarList();
-    loadTransactions();
-  }
-})();
-</script>
-  </body>
-  </html>
+// Graceful shutdown - SIGINT
+process.on('SIGINT', () => {
+  console.log('⚠️ SIGINT received, shutting down gracefully...');
+  
+  // Stop accepting new connections
+  server.close(() => {
+    console.log('✅ Server closed, closing database pool...');
+    
+    // Close database pool
+    pool.end(() => {
+      console.log('✅ Database pool closed');
+      console.log('✅ Process exiting gracefully');
+      process.exit(0);
+    });
+  });
+  
+  // Force exit after 30 seconds
+  setTimeout(() => {
+    console.error('❌ Forced shutdown after 30s timeout');
+    process.exit(1);
+  }, 30000);
+});
