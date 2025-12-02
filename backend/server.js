@@ -217,6 +217,36 @@ async function runDatabaseMigrations() {
         )`);
       console.log('✅ Ensured booking_cancellations table exists');
 
+      // If a legacy column name exists (e.g. cancelled_by, cancelled_on), migrate into new columns
+      try {
+        const colsRes = await pool.query(
+          `SELECT column_name FROM information_schema.columns WHERE table_name='booking_cancellations'`
+        );
+        const cols = colsRes.rows.map(r => r.column_name);
+
+        // If admin_email missing but cancelled_by exists, add admin_email and copy data
+        if (!cols.includes('admin_email')) {
+          await pool.query(`ALTER TABLE booking_cancellations ADD COLUMN admin_email VARCHAR(255)`);
+          console.log('✅ Added admin_email column to booking_cancellations');
+          if (cols.includes('cancelled_by')) {
+            await pool.query(`UPDATE booking_cancellations SET admin_email = cancelled_by WHERE admin_email IS NULL`);
+            console.log('✅ Migrated cancelled_by -> admin_email');
+          }
+        }
+
+        // If cancelled_at missing but cancelled_on exists, add cancelled_at and copy data
+        if (!cols.includes('cancelled_at')) {
+          await pool.query(`ALTER TABLE booking_cancellations ADD COLUMN cancelled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+          console.log('✅ Added cancelled_at column to booking_cancellations');
+          if (cols.includes('cancelled_on')) {
+            await pool.query(`UPDATE booking_cancellations SET cancelled_at = cancelled_on WHERE cancelled_at IS NULL`);
+            console.log('✅ Migrated cancelled_on -> cancelled_at');
+          }
+        }
+      } catch (mErr) {
+        console.warn('⚠️ Could not migrate legacy booking_cancellations columns:', mErr.message);
+      }
+
       // Discounts table for future bookings
       await pool.query(
         `CREATE TABLE IF NOT EXISTS discounts (
@@ -431,7 +461,7 @@ app.get('/api/admin/canceled-bookings', verifyAdmin, async (req, res) => {
        JOIN bookings b ON bc.booking_id = b.id
        JOIN cars c ON b.car_id = c.id
        JOIN customers cu ON b.customer_id = cu.id
-       ORDER BY bc.cancelled_at DESC`
+       ORDER BY bc.id DESC`
     );
     res.json(result.rows);
   } catch (err) {
