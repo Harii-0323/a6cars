@@ -188,8 +188,8 @@
 
         if (!res.ok) throw new Error(data.message || "Failed to load bookings");
 
-        const active = data.filter(b => !b.verified);
-        const past = data.filter(b => b.verified);
+        const active = data.filter(b => !b.verified && b.status !== 'cancelled');
+        const past = data.filter(b => b.verified || b.status === 'cancelled');
 
         const makeCard = (bk) => {
           const status = bk.paid
@@ -208,10 +208,14 @@
               <p class="text-gray-600 mb-1">Amount: ₹${bk.amount}</p>
               <p class="text-gray-600 mb-1">Payment: ${status}</p>
               <p class="text-gray-600 mb-3">Verification: ${verified}</p>
-              ${bk.paid ? "" : `
-                <button onclick="window.location.href='/payment.html?booking_id=${bk.id}'"
-                  class="bg-green-600 text-white w-full py-2 rounded hover:bg-green-700">Pay Now</button>
-              `}
+                  ${bk.paid ? `` : `
+                    <button onclick="window.location.href='/payment.html?booking_id=${bk.id}'"
+                      class="bg-green-600 text-white w-full py-2 rounded hover:bg-green-700">Pay Now</button>
+                  `}
+
+                  ${bk.status !== 'cancelled' ? `
+                    <button onclick="cancelBooking(${bk.id})" class="mt-2 bg-red-500 text-white w-full py-2 rounded hover:bg-red-600">Cancel Booking</button>
+                  ` : `<p class="text-red-600 font-semibold mt-2">Cancelled</p>`}
             </div>`;
         };
 
@@ -224,6 +228,29 @@
 
       } catch (err) {
         activeContainer.innerHTML = `<p class="text-red-600 text-center">${err.message}</p>`;
+      }
+    }
+
+    // Cancel booking action
+    async function cancelBooking(bookingId) {
+      if (!confirm('Are you sure you want to cancel this booking?')) return;
+
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/cancel-booking`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ booking_id: bookingId, customer_id: customer_id })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Cancel failed');
+
+        alert(`Booking cancelled. Refund: ₹${data.refund_amount || 0} (status: ${data.refund_status || 'pending'})`);
+        loadBookings();
+      } catch (err) {
+        alert('Error cancelling booking: ' + err.message);
       }
     }
 

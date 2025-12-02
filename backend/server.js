@@ -135,6 +135,115 @@ async function runDatabaseMigrations() {
       );
       console.log('✅ Created idx_payment_booking_status index');
       
+      // Ensure refund-related columns exist so we can track refunds
+      const checkRefundAmount = await pool.query(
+        `SELECT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'payments' AND column_name = 'refund_amount'
+        )`
+      );
+      if (!checkRefundAmount.rows[0].exists) {
+        await pool.query(`ALTER TABLE payments ADD COLUMN refund_amount NUMERIC(10,2)`);
+        console.log('✅ Added refund_amount column to payments');
+      }
+
+      const checkRefundStatus = await pool.query(
+        `SELECT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'payments' AND column_name = 'refund_status'
+        )`
+      );
+      if (!checkRefundStatus.rows[0].exists) {
+        await pool.query(`ALTER TABLE payments ADD COLUMN refund_status VARCHAR(50) DEFAULT 'none'`);
+        console.log('✅ Added refund_status column to payments');
+      }
+
+      const checkRefundRequested = await pool.query(
+        `SELECT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'payments' AND column_name = 'refund_requested_at'
+        )`
+      );
+      if (!checkRefundRequested.rows[0].exists) {
+        await pool.query(`ALTER TABLE payments ADD COLUMN refund_requested_at TIMESTAMP`);
+        console.log('✅ Added refund_requested_at column to payments');
+      }
+
+      const checkRefundProcessed = await pool.query(
+        `SELECT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'payments' AND column_name = 'refund_processed_at'
+        )`
+      );
+      if (!checkRefundProcessed.rows[0].exists) {
+        await pool.query(`ALTER TABLE payments ADD COLUMN refund_processed_at TIMESTAMP`);
+        console.log('✅ Added refund_processed_at column to payments');
+      }
+
+      const checkRefundDue = await pool.query(
+        `SELECT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'payments' AND column_name = 'refund_due_by'
+        )`
+      );
+      if (!checkRefundDue.rows[0].exists) {
+        await pool.query(`ALTER TABLE payments ADD COLUMN refund_due_by TIMESTAMP`);
+        console.log('✅ Added refund_due_by column to payments');
+      }
+
+      // Create refunds table to track refund operations
+      await pool.query(
+        `CREATE TABLE IF NOT EXISTS refunds (
+          id SERIAL PRIMARY KEY,
+          payment_id INTEGER REFERENCES payments(id) ON DELETE SET NULL,
+          booking_id INTEGER REFERENCES bookings(id) ON DELETE CASCADE,
+          customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL,
+          amount NUMERIC(10,2) NOT NULL,
+          status VARCHAR(50) DEFAULT 'pending',
+          reason TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          processed_at TIMESTAMP
+        )`);
+      console.log('✅ Ensured refunds table exists');
+
+      // Booking cancellations table
+      await pool.query(
+        `CREATE TABLE IF NOT EXISTS booking_cancellations (
+          id SERIAL PRIMARY KEY,
+          booking_id INTEGER REFERENCES bookings(id) ON DELETE CASCADE,
+          admin_email VARCHAR(255),
+          reason TEXT,
+          cancelled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+      console.log('✅ Ensured booking_cancellations table exists');
+
+      // Discounts table for future bookings
+      await pool.query(
+        `CREATE TABLE IF NOT EXISTS discounts (
+          id SERIAL PRIMARY KEY,
+          customer_id INTEGER REFERENCES customers(id) ON DELETE CASCADE,
+          car_id INTEGER REFERENCES cars(id) ON DELETE CASCADE,
+          percent NUMERIC(5,2) NOT NULL,
+          start_date DATE,
+          end_date DATE,
+          code VARCHAR(100),
+          used BOOLEAN DEFAULT false,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+      console.log('✅ Ensured discounts table exists');
+
+      // Notifications table (simple in-app notifications)
+      await pool.query(
+        `CREATE TABLE IF NOT EXISTS notifications (
+          id SERIAL PRIMARY KEY,
+          customer_id INTEGER REFERENCES customers(id) ON DELETE CASCADE,
+          title VARCHAR(255),
+          message TEXT,
+          read BOOLEAN DEFAULT false,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+      console.log('✅ Ensured notifications table exists');
+      
       console.log('✅ Database migration completed successfully!');
     } else {
       console.log('✅ Database schema is up to date (payment_reference_id column exists)');
@@ -144,6 +253,329 @@ async function runDatabaseMigrations() {
     console.error('   Please run migration manually: migration_add_payment_reference.sql');
   }
 }
+
+// ============================================================
+// ✅ ADMIN: Cancel booking (admin-initiated)
+// - Admin cancels booking => full refund regardless of timing
+// - Admin must provide a reason
+// - Creates booking_cancellations, refund entry, notification, and a 50% discount for same dates
+// ============================================================
+app.post('/api/admin/cancel-booking', verifyAdmin, async (req, res) => {
+  const { booking_id, reason } = req.body;
+  if (!booking_id || !reason) return res.status(400).json({ message: 'Missing booking_id or reason' });
+
+  const adminEmail = req.admin?.email || 'admin';
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const q = await client.query(
+      `SELECT b.id, b.customer_id, b.car_id, b.start_date, b.end_date, b.amount, b.paid,
+              p.id AS payment_id, p.amount AS paid_amount
+       FROM bookings b
+       LEFT JOIN payments p ON p.booking_id = b.id
+       WHERE b.id = $1`,
+      [booking_id]
+    );
+
+    if (!q.rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ message: 'Booking not found.' });
+    }
+
+    const booking = q.rows[0];
+
+    if (booking.status === 'cancelled') {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ message: 'Booking already cancelled.' });
+    }
+
+    // Mark booking cancelled
+    await client.query(`UPDATE bookings SET status='cancelled' WHERE id=$1`, [booking_id]);
+
+    // Record cancellation
+    await client.query(
+      `INSERT INTO booking_cancellations (booking_id, admin_email, reason) VALUES ($1,$2,$3)`,
+      [booking_id, adminEmail, reason]
+    );
+
+    // If paid, schedule full refund
+    let refundAmount = 0;
+    if (booking.paid) {
+      refundAmount = parseFloat(booking.paid_amount || booking.amount || 0);
+
+      // create refund record
+      await client.query(
+        `INSERT INTO refunds (payment_id, booking_id, customer_id, amount, status, reason)
+         VALUES ($1,$2,$3,$4,'pending',$5)`,
+        [booking.payment_id || null, booking_id, booking.customer_id, refundAmount, 'Admin cancellation: ' + reason]
+      );
+
+      // update payments table refund columns
+      await client.query(
+        `UPDATE payments SET refund_amount=$1, refund_status='pending', refund_requested_at=NOW(), refund_due_by=NOW()+INTERVAL '72 hours' WHERE booking_id=$2`,
+        [refundAmount, booking_id]
+      );
+    }
+
+    // Insert a notification for the customer
+    const title = 'Booking Cancelled by Admin';
+    const message = `Your booking #${booking_id} was cancelled by admin. Reason: ${reason}. Refund: ₹${refundAmount}.`;
+    await client.query(
+      `INSERT INTO notifications (customer_id, title, message) VALUES ($1,$2,$3)`,
+      [booking.customer_id, title, message]
+    );
+
+    // Create a 50% discount for the same car and dates (usable for future booking)
+    const discountPercent = 50;
+    await client.query(
+      `INSERT INTO discounts (customer_id, car_id, percent, start_date, end_date)
+       VALUES ($1,$2,$3,$4,$5)`,
+      [booking.customer_id, booking.car_id, discountPercent, booking.start_date, booking.end_date]
+    );
+
+    await client.query('COMMIT');
+
+    res.json({ message: 'Booking cancelled by admin. Full refund scheduled, customer notified, discount issued.' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Admin cancel booking error:', err);
+    res.status(500).json({ message: 'Failed to cancel booking (admin).' });
+  } finally {
+    client.release();
+  }
+});
+
+// ============================================================
+// ✅ ADMIN: List canceled bookings
+// ============================================================
+app.get('/api/admin/canceled-bookings', verifyAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT bc.*, b.start_date, b.end_date, b.amount, b.car_id, c.brand, c.model, b.customer_id, cu.name AS customer_name, cu.email
+       FROM booking_cancellations bc
+       JOIN bookings b ON bc.booking_id = b.id
+       JOIN cars c ON b.car_id = c.id
+       JOIN customers cu ON b.customer_id = cu.id
+       ORDER BY bc.cancelled_at DESC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Fetch canceled bookings error:', err);
+    res.status(500).json({ message: 'Failed to fetch canceled bookings.' });
+  }
+});
+
+// ============================================================
+// ✅ ADMIN: List refunds
+// ============================================================
+app.get('/api/admin/refunds', verifyAdmin, async (req, res) => {
+  try {
+    const q = await pool.query(
+      `SELECT r.*, p.payment_id AS payment_row_id, p.refund_status AS payment_refund_status, cu.name AS customer_name, cu.email
+       FROM refunds r
+       LEFT JOIN payments p ON p.id = r.payment_id
+       LEFT JOIN customers cu ON cu.id = r.customer_id
+       ORDER BY r.created_at DESC`);
+    res.json(q.rows);
+  } catch (err) {
+    console.error('Fetch refunds error:', err);
+    res.status(500).json({ message: 'Failed to fetch refunds.' });
+  }
+});
+
+// ============================================================
+// ✅ ADMIN: Process refunds (simulate/process)
+// - If `refund_id` provided in body, process that refund, else process all pending refunds (limit 50)
+// - Marks `refunds.status='processed'`, `refunds.processed_at=NOW()` and updates `payments` refund columns
+// - Inserts notification for customer about processed refund
+// ============================================================
+app.post('/api/admin/process-refunds', verifyAdmin, async (req, res) => {
+  const { refund_id } = req.body || {};
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const params = [];
+    let qstr = `SELECT r.* FROM refunds r WHERE r.status='pending'`;
+    if (refund_id) {
+      qstr += ` AND r.id=$1`;
+      params.push(refund_id);
+    } else {
+      qstr += ` ORDER BY r.created_at ASC LIMIT 50`;
+    }
+
+    const refundsRes = await client.query(qstr, params);
+    if (!refundsRes.rows.length) {
+      await client.query('COMMIT');
+      return res.json({ message: 'No pending refunds found.' });
+    }
+
+    const processed = [];
+    for (const r of refundsRes.rows) {
+      // In a real system we'd call the payment gateway here. We'll simulate success.
+      await client.query(`UPDATE refunds SET status='processed', processed_at=NOW() WHERE id=$1`, [r.id]);
+
+      // update payments row
+      await client.query(`UPDATE payments SET refund_status='processed', refund_processed_at=NOW() WHERE booking_id=$1`, [r.booking_id]);
+
+      // insert notification
+      await client.query(
+        `INSERT INTO notifications (customer_id, title, message) VALUES ($1,$2,$3)`,
+        [r.customer_id, 'Refund Processed', `Your refund of ₹${r.amount} for booking #${r.booking_id} has been processed.`]
+      );
+
+      processed.push({ refund_id: r.id, booking_id: r.booking_id, amount: r.amount });
+    }
+
+    await client.query('COMMIT');
+    res.json({ message: 'Processed refunds', processed });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Process refunds error:', err);
+    res.status(500).json({ message: 'Failed to process refunds.' });
+  } finally {
+    client.release();
+  }
+});
+
+// ============================================================
+// ✅ ADMIN: Get car schedule and vacancy ranges (next 180 days)
+// ============================================================
+app.get('/api/admin/car-schedule/:car_id', verifyAdmin, async (req, res) => {
+  const { car_id } = req.params;
+  try {
+    const bookingsRes = await pool.query(
+      `SELECT id, start_date, end_date, status FROM bookings WHERE car_id=$1 AND status!='cancelled' ORDER BY start_date ASC`,
+      [car_id]
+    );
+
+    const bookings = bookingsRes.rows.map(r => ({ start: new Date(r.start_date), end: new Date(r.end_date), id: r.id }));
+
+    // Compute vacancy ranges between today and +180 days
+    const today = new Date();
+    const endWindow = new Date(today.getTime() + 180 * 24 * 60 * 60 * 1000);
+
+    // Create sorted non-overlapping booked ranges
+    const ranges = bookings.map(b => ({ start: b.start, end: b.end })).sort((a,b) => a.start - b.start);
+    const merged = [];
+    for (const r of ranges) {
+      if (!merged.length) merged.push(r);
+      else {
+        const last = merged[merged.length-1];
+        if (r.start <= new Date(last.end.getTime() + 24*60*60*1000)) {
+          // overlap or contiguous
+          last.end = new Date(Math.max(last.end, r.end));
+        } else merged.push(r);
+      }
+    }
+
+    const vacancies = [];
+    let cursor = new Date(today);
+    for (const m of merged) {
+      if (m.end < today) continue;
+      if (m.start > cursor) {
+        vacancies.push({ start: cursor.toISOString().split('T')[0], end: new Date(m.start.getTime() - 24*60*60*1000).toISOString().split('T')[0] });
+      }
+      cursor = new Date(m.end.getTime() + 24*60*60*1000);
+      if (cursor > endWindow) break;
+    }
+    if (cursor <= endWindow) vacancies.push({ start: cursor.toISOString().split('T')[0], end: endWindow.toISOString().split('T')[0] });
+
+    res.json({ bookings: bookingsRes.rows, vacancies });
+  } catch (err) {
+    console.error('Car schedule error:', err);
+    res.status(500).json({ message: 'Failed to fetch car schedule.' });
+  }
+});
+
+// ============================================================
+// ✅ Customer: Cancel booking and request refund
+// Rules:
+// - Full refund if cancellation is made >= 48 hours before booking start
+// - 50% refund otherwise
+// - Refund should be processed within 72 hours (we schedule and mark as pending)
+// - If booking not paid, simply cancel without refund
+// ============================================================
+app.post('/api/cancel-booking', async (req, res) => {
+  const { booking_id, customer_id } = req.body;
+  if (!booking_id || !customer_id) return res.status(400).json({ message: 'Missing booking_id or customer_id' });
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const q = await client.query(
+      `SELECT b.id, b.customer_id, b.start_date, b.end_date, b.amount, b.status, b.paid,
+              p.id AS payment_id, p.amount AS paid_amount, p.status AS payment_status
+       FROM bookings b
+       LEFT JOIN payments p ON p.booking_id = b.id
+       WHERE b.id = $1 AND b.customer_id = $2`,
+      [booking_id, customer_id]
+    );
+
+    if (!q.rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ message: 'Booking not found or does not belong to this customer.' });
+    }
+
+    const booking = q.rows[0];
+
+    if (booking.status === 'cancelled') {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ message: 'Booking already cancelled.' });
+    }
+
+    // If not paid, cancel booking without refund
+    if (!booking.paid) {
+      await client.query(`UPDATE bookings SET status='cancelled' WHERE id=$1`, [booking_id]);
+      await client.query('COMMIT');
+      return res.json({ message: 'Booking cancelled. No payment was recorded, so no refund necessary.' });
+    }
+
+    // Compute time difference in hours between now and booking start
+    const now = new Date();
+    const start = new Date(booking.start_date);
+    const hoursUntilStart = (start - now) / (1000 * 60 * 60);
+
+    let refundAmount = 0;
+    if (hoursUntilStart >= 48) {
+      refundAmount = parseFloat(booking.paid_amount || booking.amount || 0);
+    } else {
+      refundAmount = parseFloat((parseFloat(booking.paid_amount || booking.amount || 0) * 0.5).toFixed(2));
+    }
+
+    // Mark booking as cancelled
+    await client.query(`UPDATE bookings SET status='cancelled' WHERE id=$1`, [booking_id]);
+
+    // Update payments table to schedule refund
+    await client.query(
+      `UPDATE payments
+       SET refund_amount = $1,
+           refund_status = 'pending',
+           refund_requested_at = NOW(),
+           refund_due_by = NOW() + INTERVAL '72 hours'
+       WHERE booking_id = $2`,
+      [refundAmount, booking_id]
+    );
+
+    await client.query('COMMIT');
+
+    res.json({
+      message: 'Booking cancelled successfully. Refund scheduled.',
+      booking_id,
+      refund_amount: refundAmount,
+      refund_status: 'pending',
+      refund_due_by_hours: 72
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Cancel booking error:', err);
+    res.status(500).json({ message: 'Failed to cancel booking.' });
+  } finally {
+    client.release();
+  }
+});
 
 
 // ============================================================
@@ -353,7 +785,27 @@ app.post("/api/book", async (req, res) => {
         (new Date(end_date) - new Date(start_date)) / (1000 * 60 * 60 * 24)
       )
     );
-    const total = rate * days;
+    let total = rate * days;
+
+    // Check for available discount for this customer/car/date range
+    try {
+      const discRes = await client.query(
+        `SELECT * FROM discounts WHERE customer_id=$1 AND car_id=$2 AND used=false
+         AND start_date <= $3 AND end_date >= $4 ORDER BY created_at DESC LIMIT 1`,
+        [customer_id, car_id, start_date, end_date]
+      );
+      if (discRes.rows.length) {
+        const disc = discRes.rows[0];
+        const percent = parseFloat(disc.percent) || 0;
+        const discountAmount = parseFloat(((total * percent) / 100).toFixed(2));
+        total = parseFloat((total - discountAmount).toFixed(2));
+
+        // mark discount used
+        await client.query(`UPDATE discounts SET used=true WHERE id=$1`, [disc.id]);
+      }
+    } catch (dErr) {
+      console.warn('Discount check failed:', dErr.message);
+    }
 
     await client.query("BEGIN");
     const booking = await client.query(

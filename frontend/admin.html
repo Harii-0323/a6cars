@@ -123,6 +123,14 @@
                 📋 <span>Show All</span>
               </button>
 
+              <button class="side-link" data-section="section-cancellations">
+                ❌ <span>Cancellations</span>
+              </button>
+
+              <button class="side-link" data-section="section-schedule">
+                📅 <span>Car Schedule</span>
+              </button>
+
             </div>
 
             <!-- Filters for Recent Transactions -->
@@ -278,6 +286,32 @@
 </section>
 
 
+<!-- ========================= CANCELLATIONS SECTION ========================= -->
+<section id="section-cancellations" class="hidden">
+  <div class="bg-white p-4 rounded shadow">
+    <h3 class="text-lg font-semibold mb-3">Cancellations</h3>
+    <div class="flex items-center gap-2 mb-3">
+      <button id="process-refunds-all" class="bg-green-600 text-white px-3 py-1 rounded">Process Pending Refunds</button>
+      <input id="process-refund-id" type="number" placeholder="Refund ID (optional)" class="border px-2 py-1 rounded text-sm" />
+      <button id="process-refund-single" class="bg-blue-600 text-white px-3 py-1 rounded">Process Refund ID</button>
+    </div>
+    <div id="cancellations-list" class="text-sm text-gray-700">Loading...</div>
+  </div>
+</section>
+
+
+<!-- ========================= CAR SCHEDULE SECTION ========================= -->
+<section id="section-schedule" class="hidden">
+  <div class="bg-white p-4 rounded shadow">
+    <h3 class="text-lg font-semibold mb-3">Car Schedule & Vacancies</h3>
+    <div class="flex gap-2 mb-3">
+      <select id="schedule-car-select" class="border p-2 rounded"></select>
+      <button id="schedule-view" class="bg-blue-600 text-white px-3 py-1 rounded">View Schedule</button>
+    </div>
+    <div id="schedule-result" class="text-sm text-gray-700"></div>
+  </div>
+</section>
+
 
 <!-- ========================= VERIFY PAYMENT SECTION ========================= -->
 <section id="section-verify" class="hidden">
@@ -406,8 +440,9 @@ function setAdminToken(token) {
   document.getElementById('admin-dashboard').classList.remove('hidden');
   document.getElementById('admin-logout').classList.remove('hidden');
 
-  loadCarList();
-  loadTransactions();
+    loadCarList();
+    loadTransactions();
+    ensureAdminExtras();
 }
 
 function doLogout() {
@@ -461,7 +496,9 @@ const sectionIds = [
   'section-addcar',
   'section-managecar',
   'section-verify',
-  'section-business'
+  'section-business',
+  'section-cancellations',
+  'section-schedule'
 ];
 
 document.querySelectorAll('.side-link').forEach(btn => {
@@ -647,7 +684,7 @@ function viewCarBookings(carId, carName) {
   title.textContent = carName;
   panel.classList.remove('hidden');
 
-  body.innerHTML = `<tr><td colspan="7" class="text-gray-500 text-xs p-2">Loading...</td></tr>`;
+  body.innerHTML = `<tr><td colspan="8" class="text-gray-500 text-xs p-2">Loading...</td></tr>`;
 
   const token = getAdminToken();
 
@@ -659,7 +696,7 @@ function viewCarBookings(carId, carName) {
     body.innerHTML = '';
 
     if (!list.length) {
-      body.innerHTML = `<tr><td colspan="7" class="text-gray-500 text-xs p-2">No bookings found.</td></tr>`;
+      body.innerHTML = `<tr><td colspan="8" class="text-gray-500 text-xs p-2">No bookings found.</td></tr>`;
       return;
     }
 
@@ -682,7 +719,45 @@ function viewCarBookings(carId, carName) {
         </td>
       `;
 
+      // Action cell
+      const actionTd = document.createElement('td');
+      actionTd.className = 'border px-2 py-1';
+      if (bk.status === 'cancelled') {
+        actionTd.innerHTML = '<span class="text-red-600 font-semibold">Cancelled</span>';
+      } else {
+        const btn = document.createElement('button');
+        btn.className = 'bg-red-500 text-white px-2 py-1 rounded admin-cancel';
+        btn.dataset.booking = bk.id;
+        btn.innerText = 'Cancel';
+        actionTd.appendChild(btn);
+      }
+
       body.appendChild(tr);
+      tr.appendChild(actionTd);
+    });
+
+    // attach listeners for cancel buttons
+    body.querySelectorAll('.admin-cancel').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const bookingId = btn.dataset.booking;
+        const reason = prompt('Enter reason for cancellation:');
+        if (!reason) return alert('Cancellation reason required');
+
+        try {
+          const res = await fetch(api('/api/admin/cancel-booking'), {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+getAdminToken() },
+            body: JSON.stringify({ booking_id: bookingId, reason })
+          });
+          const j = await res.json();
+          if (!res.ok) throw new Error(j.message || 'Cancel failed');
+          alert(j.message);
+          viewCarBookings(carId, carName);
+          loadCancellations();
+        } catch (err) {
+          alert('Error cancelling booking: ' + err.message);
+        }
+      });
     });
   });
 }
@@ -932,6 +1007,97 @@ function playSuccessSound() {
 
 
 /* ============================================================
+   CANCELLATIONS & SCHEDULE HELPERS
+============================================================ */
+
+// Load cancellations list into the Cancellations section
+async function loadCancellations() {
+  try {
+    const token = getAdminToken();
+    if (!token) return;
+    const res = await fetch(api('/api/admin/canceled-bookings'), { headers: { Authorization: 'Bearer ' + token } });
+    const list = await res.json();
+    const container = document.getElementById('cancellations-list');
+    if (!container) return;
+
+    if (!list.length) {
+      container.innerHTML = `<p class="text-sm text-gray-500">No cancellations yet.</p>`;
+      return;
+    }
+
+    let html = `<div class="overflow-auto"><table class="w-full text-left text-sm border-collapse"><thead class="bg-gray-50"><tr><th class="border px-2 py-1">Booking</th><th class="border px-2 py-1">Customer</th><th class="border px-2 py-1">Car</th><th class="border px-2 py-1">From</th><th class="border px-2 py-1">To</th><th class="border px-2 py-1">Reason</th><th class="border px-2 py-1">Cancelled At</th></tr></thead><tbody>`;
+    list.forEach(r => {
+      html += `<tr><td class="border px-2 py-1">${r.booking_id}</td><td class="border px-2 py-1">${r.customer_name}</td><td class="border px-2 py-1">${r.brand} ${r.model}</td><td class="border px-2 py-1">${new Date(r.start_date).toLocaleDateString()}</td><td class="border px-2 py-1">${new Date(r.end_date).toLocaleDateString()}</td><td class="border px-2 py-1">${r.reason}</td><td class="border px-2 py-1">${new Date(r.cancelled_at).toLocaleString()}</td></tr>`;
+    });
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
+  } catch (err) {
+    console.error('Load cancellations error:', err);
+  }
+}
+
+// Load car options for schedule view
+async function loadScheduleOptions() {
+  try {
+    const res = await fetch(api('/api/cars'));
+    const cars = await res.json();
+    const sel = document.getElementById('schedule-car-select');
+    if (!sel) return;
+    sel.innerHTML = '';
+    cars.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.text = `${c.brand} ${c.model} (${c.location || ''})`;
+      sel.appendChild(opt);
+    });
+  } catch (err) { console.error('Load schedule options error:', err); }
+}
+
+document.addEventListener('click', (e) => {
+  if (e.target && e.target.id === 'schedule-view') {
+    const sel = document.getElementById('schedule-car-select');
+    if (sel && sel.value) showCarSchedule(sel.value);
+  }
+});
+
+// When admin dashboard becomes visible, load cancellations and schedule options
+function ensureAdminExtras() {
+  loadCancellations();
+  loadScheduleOptions();
+}
+
+// Handle refund processing actions
+document.addEventListener('click', async (e) => {
+  if (e.target && e.target.id === 'process-refunds-all') {
+    if (!confirm('Process all pending refunds? This will mark them as processed (simulated).')) return;
+    try {
+      const res = await fetch(api('/api/admin/process-refunds'), {
+        method: 'POST', headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+getAdminToken() }
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.message || 'Processing failed');
+      alert(j.message + '\nProcessed: ' + (j.processed ? j.processed.length : 0));
+      loadCancellations();
+    } catch (err) { alert('Error: '+err.message); }
+  }
+
+  if (e.target && e.target.id === 'process-refund-single') {
+    const id = document.getElementById('process-refund-id').value;
+    if (!id) return alert('Enter a refund ID to process');
+    try {
+      const res = await fetch(api('/api/admin/process-refunds'), {
+        method: 'POST', headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+getAdminToken() },
+        body: JSON.stringify({ refund_id: parseInt(id,10) })
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.message || 'Processing failed');
+      alert(j.message);
+      loadCancellations();
+    } catch (err) { alert('Error: '+err.message); }
+  }
+});
+
+/* ============================================================
    AUTO-LOGIN RESTORE
 ============================================================ */
 (function init() {
@@ -942,6 +1108,7 @@ function playSuccessSound() {
 
     loadCarList();
     loadTransactions();
+    ensureAdminExtras();
   }
 })();
 </script>
