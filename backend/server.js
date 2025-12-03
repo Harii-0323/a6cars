@@ -1276,7 +1276,7 @@ app.post("/api/payment/confirm", async (req, res) => {
     };
     const returnQR = await QRCode.toDataURL(JSON.stringify(returnQRData));
 
-    await client.query("UPDATE bookings SET paid=true, status='confirmed' WHERE id=$1", [booking_id]);
+    await client.query("UPDATE bookings SET paid=true, status='booked' WHERE id=$1", [booking_id]);
     await client.query("UPDATE payments SET status='paid' WHERE booking_id=$1", [booking_id]);
 
     res.json({ 
@@ -1475,11 +1475,25 @@ app.post("/api/admin/verify-qr", verifyAdmin, async (req, res) => {
         "UPDATE bookings SET verified=true WHERE id=$1",
         [booking_id]
       );
+      // Set user-friendly status indicating car collected
+      const collector = bookingData.customer_name || bookingData.customer_email || 'customer';
+      await pool.query(
+        "UPDATE bookings SET status=$1 WHERE id=$2",
+        [`car is collected by ${collector}`, booking_id]
+      );
+      bookingData.status = `car is collected by ${collector}`;
     } else if (qr_type === "return") {
       await pool.query(
         "UPDATE bookings SET return_verified=true WHERE id=$1",
         [booking_id]
       );
+      // Set user-friendly status indicating car returned
+      const returner = bookingData.customer_name || bookingData.customer_email || 'customer';
+      await pool.query(
+        "UPDATE bookings SET status=$1 WHERE id=$2",
+        [`car is returned by ${returner}`, booking_id]
+      );
+      bookingData.status = `car is returned by ${returner}`;
     }
 
     // If return scan happens before booking end_date, compute vacancies from now -> booking.end_date for this car
