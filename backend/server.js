@@ -1470,6 +1470,11 @@ app.post("/api/admin/verify-qr", verifyAdmin, async (req, res) => {
         "UPDATE bookings SET collection_verified=true WHERE id=$1",
         [booking_id]
       );
+      // Also mark the booking as verified so frontend dashboards reflect verification
+      await pool.query(
+        "UPDATE bookings SET verified=true WHERE id=$1",
+        [booking_id]
+      );
     } else if (qr_type === "return") {
       await pool.query(
         "UPDATE bookings SET return_verified=true WHERE id=$1",
