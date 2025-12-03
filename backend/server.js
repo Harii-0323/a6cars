@@ -1097,6 +1097,79 @@ app.post("/api/bookings/batch", async (req, res) => {
   }
 });
 
+// ============================================================
+// ✅ USER: Active & Past Bookings (Home Dashboard)
+// Returns two arrays: `active` (ongoing or upcoming, not cancelled) and `past` (ended or cancelled)
+// ============================================================
+app.get("/api/bookings/status/:customer_id", async (req, res) => {
+  const { customer_id } = req.params;
+
+  try {
+    const now = new Date();
+
+    const result = await pool.query(
+      `SELECT b.*, c.brand, c.model, c.location,
+              p.status AS payment_status, p.refund_amount, p.refund_status,
+              bc.reason AS cancelled_reason, bc.cancelled_at
+       FROM bookings b
+       JOIN cars c ON b.car_id = c.id
+       LEFT JOIN payments p ON p.booking_id = b.id
+       LEFT JOIN booking_cancellations bc ON bc.booking_id = b.id
+       WHERE b.customer_id = $1
+       ORDER BY b.start_date DESC`,
+      [customer_id]
+    );
+
+    const active = [];
+    const past = [];
+
+    result.rows.forEach(b => {
+      const endDate = b.end_date ? new Date(b.end_date) : null;
+
+      if (endDate && endDate >= now && b.status !== "cancelled") {
+        active.push(b);
+      } else {
+        past.push(b);
+      }
+    });
+
+    res.json({ active, past });
+
+  } catch (err) {
+    console.error("Status fetch error:", err);
+    res.status(500).json({ message: "Failed to load booking status." });
+  }
+});
+
+// ============================================================
+// ✅ USER: Full Booking History (active + past + cancelled)
+// Includes payment status and cancellation metadata when available
+// ============================================================
+app.get("/api/history/:customer_id", async (req, res) => {
+  const { customer_id } = req.params;
+
+  try {
+    const result = await pool.query(
+      `SELECT b.*, 
+              c.brand, c.model, c.location,
+              p.status AS payment_status, p.refund_amount, p.refund_status,
+              bc.reason AS cancelled_reason, bc.cancelled_at
+       FROM bookings b
+       JOIN cars c ON b.car_id = c.id
+       LEFT JOIN payments p ON p.booking_id = b.id
+       LEFT JOIN booking_cancellations bc ON bc.booking_id = b.id
+       WHERE b.customer_id = $1
+       ORDER BY b.start_date DESC`,
+      [customer_id]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("History fetch error:", err);
+    res.status(500).json({ message: "Failed to load booking history." });
+  }
+});
+
 // ✅ Check payment status
 app.get("/api/payment/status/:booking_id", async (req, res) => {
   const { booking_id } = req.params;
