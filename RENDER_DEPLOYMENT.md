@@ -135,27 +135,27 @@ Or copy and paste the SQL from `setup_pg.sql` into the Render SQL editor.
 
 ### **Backend Health Check:**
 ```bash
-# Replace with your Render backend URL
-curl https://a6cars.onrender.com/
+# Railway backend URL
+curl https://a6cars-api.up.railway.app/
 # Should return: "🚗 A6 Cars Backend is running successfully!"
 ```
 
 ### **Test Endpoints:**
 ```bash
 # Register user
-curl -X POST https://a6cars.onrender.com/api/register \
+curl -X POST https://a6cars-api.up.railway.app/api/register \
   -H "Content-Type: application/json" \
   -d '{"name":"Test","email":"test@example.com","phone":"9876543210","password":"test123"}'
 
 # Login
-curl -X POST https://a6cars.onrender.com/api/login \
+curl -X POST https://a6cars-api.up.railway.app/api/login \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"test123"}'
 ```
 
 ### **Frontend Access:**
 ```
-https://a6cars-frontend.onrender.com
+https://a6cars-frontend.up.railway.app
 ```
 
 ---
@@ -208,8 +208,8 @@ https://a6cars-frontend.onrender.com
 
 | Service | URL Format |
 |---------|-----------|
-| Backend API | `https://a6cars.onrender.com` |
-| Frontend | `https://a6cars-frontend.onrender.com` |
+| Backend API | `https://a6cars-api.up.railway.app` |
+| Frontend | `https://a6cars-frontend.up.railway.app` |
 | Database | `postgresql://user:pass@host:5432/a6cars_db` |
 
 ---

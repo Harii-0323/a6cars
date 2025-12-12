@@ -13,9 +13,9 @@
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     // Local development
     BACKEND_URL = 'http://localhost:3000';
-  } else if (hostname.includes('onrender.com')) {
-    // On Render platform - use the actual backend URL
-    BACKEND_URL = 'https://a6cars.onrender.com';
+  } else if (hostname.includes('railway.app')) {
+    // On Railway platform
+    BACKEND_URL = 'https://a6cars-api.up.railway.app';
   } else {
     // Production with custom domain or other platform
     BACKEND_URL = `${protocol}//api.${hostname}` || `${protocol}//backend.${hostname}`;
@@ -52,11 +52,5 @@
   };
   
   // Log configuration in development
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    console.log('🚗 A6 Cars Frontend - Local Development Mode');
-    console.log('Backend URL:', window.API_CONFIG.BACKEND_URL);
-  } else {
-    console.log('🚗 A6 Cars Frontend - Production Mode');
-    console.log('Backend URL:', window.API_CONFIG.BACKEND_URL);
-  }
+  // debug logging removed
 })();

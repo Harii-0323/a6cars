@@ -1,0 +1,56 @@
+# ============================
+# Railway Deployment Configuration
+# A6 Cars Full Project
+# Backend + Frontend + Database
+# ============================
+
+# Railway uses a simpler service definition format
+# Services are defined here and deployed individually
+
+services:
+  # Backend Service Configuration
+  backend:
+    rootDirectory: backend
+    env: node
+    startCommand: "node server.js"
+    buildCommand: "npm install"
+    regions:
+      - us-west # or your preferred region
+    port: 3000
+    environment:
+      DB_HOST: ${DATABASE_URL} # Railway provides DATABASE_URL
+      JWT_SECRET: secret123
+      ADMIN_EMAIL: karikeharikrishna@gmail.com
+      ADMIN_PASS: Anu
+      NODE_ENV: production
+    buildpack:
+      - nodejs
+
+  # Frontend Service Configuration
+  frontend:
+    rootDirectory: frontend
+    env: static
+    framework: none
+    regions:
+      - us-west
+
+# Database Configuration
+databases:
+  postgres:
+    engine: postgres
+    version: "17"
+    region: us-west
+    plan: starter
+
+# Environment Variables (configured in Railway Dashboard)
+# DATABASE_URL: PostgreSQL connection string provided by Railway
+# JWT_SECRET: Set to "secret123"
+# NODE_ENV: Set to "production"
+# PORT: Set to "3000"
+
+# Deployment Notes:
+# 1. Connect your GitHub repository to Railway
+# 2. Railway will automatically deploy on push to main branch
+# 3. Set environment variables in Railway Dashboard
+# 4. Backend will be available at: https://a6cars-api.up.railway.app
+# 5. Frontend will be available at: https://a6cars-frontend.up.railway.app

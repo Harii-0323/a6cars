@@ -27,10 +27,7 @@
 <script>
 (function setupNavbar() {
   try {
-    console.log("🔍 Navbar setup running...");
-    console.log("customer_id =", localStorage.getItem("customer_id"));
-    console.log("customer_name =", localStorage.getItem("customer_name"));
-    console.log("auth_token =", localStorage.getItem("auth_token"));
+    // Navbar setup (debug logs removed)
 
     const customerId = localStorage.getItem("customer_id");
     const customerName = localStorage.getItem("customer_name");
@@ -66,12 +63,10 @@
     const show = (...els) => els.forEach(el => el?.classList.remove("hidden"));
     const hide = (...els) => els.forEach(el => el?.classList.add("hidden"));
 
-    console.log("isUserLoggedIn =", isUserLoggedIn);
-    console.log("isAdminLoggedIn =", isAdminLoggedIn);
+    // auth state evaluated
 
     // Admin
     if (isAdminLoggedIn) {
-      console.log("✅ Showing admin navbar");
       hide(authLinks, navHome, navBook, navHistory);
       show(adminLink, logoutBtn, userEl);
       userEl.textContent = "🧑‍💼 Admin";
@@ -79,7 +74,6 @@
 
     // User
     else if (isUserLoggedIn) {
-      console.log("✅ Showing user navbar");
       hide(authLinks, adminLink);
       show(userEl, logoutBtn);
       userEl.textContent = `👋 Hello, ${customerName || "User"}`;
@@ -103,7 +97,6 @@
 
     // Guest
     else {
-      console.log("✅ Showing guest navbar");
       show(authLinks);
       hide(userEl, logoutBtn, adminLink, navHome, navBook, navHistory);
     }

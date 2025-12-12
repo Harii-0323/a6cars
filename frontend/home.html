@@ -45,7 +45,7 @@
     // Setup navbar auth state
     (function setupNavbar() {
       try {
-        console.log("🔍 Navbar setup running on home.html...");
+        // Navbar setup running on home.html (debug logs removed)
         
         const customerId = localStorage.getItem("customer_id");
         const customerName = localStorage.getItem("customer_name");
@@ -67,20 +67,19 @@
         const show = (...els) => els.forEach(el => el?.classList.remove("hidden"));
         const hide = (...els) => els.forEach(el => el?.classList.add("hidden"));
 
-        console.log("isUserLoggedIn:", isUserLoggedIn, "isAdminLoggedIn:", isAdminLoggedIn);
+        // auth state evaluated
 
         if (isAdminLoggedIn) {
-          console.log("✅ Showing ADMIN navbar");
           hide(authLinks, navHome, navBook, navHistory);
           show(adminLink, logoutBtn, userEl);
           userEl.textContent = "🧑‍💼 Admin";
         } else if (isUserLoggedIn) {
-          console.log("✅ Showing USER navbar");
+          // user navbar
           hide(authLinks, adminLink);
           show(userEl, logoutBtn, navHome, navBook, navHistory);
           userEl.textContent = `👋 Hello, ${customerName || "User"}`;
         } else {
-          console.log("✅ Showing GUEST navbar");
+          // guest navbar
           show(authLinks);
           hide(userEl, logoutBtn, adminLink, navHome, navBook, navHistory);
         }
@@ -133,7 +132,7 @@
     const BACKEND_URL =
       (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
         ? "http://localhost:3000"
-        : "https://a6cars.onrender.com";
+        : "https://a6cars-api.up.railway.app";
 
     // ✅ User session check
     const customer_id = localStorage.getItem("customer_id");

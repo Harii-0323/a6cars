@@ -10,7 +10,7 @@
 ## Test Scenario 1: Valid Payment Verification
 
 ### Steps:
-1. Open frontend: `https://a6cars.onrender.com`
+1. Open frontend: `https://a6cars-frontend.up.railway.app`
 2. Login with customer account
 3. Select a car → Choose dates → Click "Book Now"
 4. **Expected Result**: Payment reference modal appears with:
@@ -62,7 +62,7 @@ WHERE payment_reference_id = 'TEST123456789';
 ### Steps:
 1. In browser console, manually call:
    ```javascript
-   fetch('https://a6cars.onrender.com/api/verify-payment', {
+   fetch('https://a6cars-api.up.railway.app/api/verify-payment', {
      method: 'POST',
      headers: { 'Content-Type': 'application/json' },
      body: JSON.stringify({
@@ -146,7 +146,7 @@ async function stressTest() {
   
   for (let i = 0; i < 10; i++) {
     promises.push(
-      fetch('https://a6cars.onrender.com/api/verify-payment', {
+      fetch('https://a6cars-api.up.railway.app/api/verify-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -227,7 +227,7 @@ LIMIT 5;
 ### Quick Debug:
 ```javascript
 // In browser console - test backend connectivity
-await fetch('https://a6cars.onrender.com/').then(r => r.text())
+await fetch('https://a6cars-api.up.railway.app/').then(r => r.text())
 // Should return: "🚗 A6 Cars Backend is running successfully!"
 ```
 
@@ -256,7 +256,7 @@ await fetch('https://a6cars.onrender.com/').then(r => r.text())
 
 ### Check Backend Status:
 ```bash
-curl https://a6cars.onrender.com/
+curl https://a6cars-api.up.railway.app/
 ```
 
 ### View Backend Logs:

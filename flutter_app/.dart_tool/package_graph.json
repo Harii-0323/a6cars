@@ -15,12 +15,29 @@
       "devDependencies": []
     },
     {
+      "name": "qr_flutter",
+      "version": "4.1.0",
+      "dependencies": [
+        "flutter",
+        "qr"
+      ]
+    },
+    {
       "name": "qr_code_scanner",
       "version": "0.7.0",
       "dependencies": [
         "flutter",
         "flutter_web_plugins",
         "js"
+      ]
+    },
+    {
+      "name": "http",
+      "version": "0.13.6",
+      "dependencies": [
+        "async",
+        "http_parser",
+        "meta"
       ]
     },
     {
@@ -36,6 +53,13 @@
       ]
     },
     {
+      "name": "qr",
+      "version": "3.0.2",
+      "dependencies": [
+        "meta"
+      ]
+    },
+    {
       "name": "flutter_web_plugins",
       "version": "0.0.0",
       "dependencies": [
@@ -43,9 +67,34 @@
       ]
     },
     {
-      "name": "vector_math",
-      "version": "2.2.0",
+      "name": "js",
+      "version": "0.6.7",
+      "dependencies": [
+        "meta"
+      ]
+    },
+    {
+      "name": "meta",
+      "version": "1.16.0",
       "dependencies": []
+    },
+    {
+      "name": "http_parser",
+      "version": "4.1.2",
+      "dependencies": [
+        "collection",
+        "source_span",
+        "string_scanner",
+        "typed_data"
+      ]
+    },
+    {
+      "name": "async",
+      "version": "2.13.0",
+      "dependencies": [
+        "collection",
+        "meta"
+      ]
     },
     {
       "name": "sky_engine",
@@ -53,8 +102,8 @@
       "dependencies": []
     },
     {
-      "name": "meta",
-      "version": "1.16.0",
+      "name": "vector_math",
+      "version": "2.2.0",
       "dependencies": []
     },
     {
@@ -73,47 +122,6 @@
       "name": "characters",
       "version": "1.4.0",
       "dependencies": []
-    },
-    {
-      "name": "qr_flutter",
-      "version": "4.1.0",
-      "dependencies": [
-        "flutter",
-        "qr"
-      ]
-    },
-    {
-      "name": "qr",
-      "version": "3.0.2",
-      "dependencies": [
-        "meta"
-      ]
-    },
-    {
-      "name": "js",
-      "version": "0.6.7",
-      "dependencies": [
-        "meta"
-      ]
-    },
-    {
-      "name": "http",
-      "version": "0.13.6",
-      "dependencies": [
-        "async",
-        "http_parser",
-        "meta"
-      ]
-    },
-    {
-      "name": "http_parser",
-      "version": "4.1.2",
-      "dependencies": [
-        "collection",
-        "source_span",
-        "string_scanner",
-        "typed_data"
-      ]
     },
     {
       "name": "typed_data",
@@ -147,14 +155,6 @@
       "name": "path",
       "version": "1.9.1",
       "dependencies": []
-    },
-    {
-      "name": "async",
-      "version": "2.13.0",
-      "dependencies": [
-        "collection",
-        "meta"
-      ]
     }
   ],
   "configVersion": 1
