@@ -3,7 +3,7 @@
 ## **Problem Identified**
 
 The frontend was configured with incorrect backend URLs:
-- ❌ Hardcoded `https://a6cars.onrender.com` (wrong domain)
+- ❌ Hardcoded `https://a6cars.onrender.com` (Render domain - no longer used)
 - ❌ Hardcoded `http://localhost:10000` (wrong port)
 - ❌ Inconsistent URLs across different HTML files
 
@@ -16,7 +16,7 @@ The frontend was configured with incorrect backend URLs:
 - **Purpose:** Auto-detects backend URL based on environment
 - **Features:**
   - Automatically uses `http://localhost:3000` for local development
-  - Automatically uses `https://a6cars.onrender.com` for production
+  - Automatically uses `https://a6cars-api.up.railway.app` for production (Railway)
   - Provides helper functions for API calls
 
 ### **2. Updated All Frontend Files**
@@ -34,7 +34,7 @@ The frontend was configured with incorrect backend URLs:
 
 ---
 
-## **🚀 How to Redeploy on Render**
+## **🚀 How to Redeploy on Railway**
 
 ### **Step 1: Verify Changes Locally**
 
@@ -57,22 +57,22 @@ cd c:\A6cars\a6cars
 git push origin main
 ```
 
-### **Step 3: Redeploy Frontend on Render**
+### **Step 3: Redeploy Frontend on Railway**
 
 **Option A: Auto-Redeploy (If enabled)**
-- Just push to GitHub, Render will auto-deploy
+- Just push to GitHub, Railway will auto-deploy
 
 **Option B: Manual Redeploy**
-1. Go to Render Dashboard
+1. Go to Railway Dashboard
 2. Select `a6cars-frontend` service
-3. Click **"Manual Deploy"** or **"Clear Build Cache & Deploy"**
+3. Click **"Deploy"** or **"Redeploy"**
 4. Wait for deployment to complete
 
 ### **Step 4: Verify Deployment**
 
 ```bash
 # Test frontend
-curl https://a6cars-frontend.onrender.com
+curl https://a6cars-frontend.up.railway.app
 
 # Test API call (should show no errors in browser console)
 ```
@@ -88,11 +88,11 @@ Backend:  http://localhost:3000
 Database: localhost:5432
 ```
 
-### **Render Production**
+### **Railway Production**
 ```
-Frontend: https://a6cars-frontend.onrender.com
-Backend:  https://a6cars.onrender.com
-Database: [PostgreSQL connection string from Render]
+Frontend: https://a6cars-frontend.up.railway.app
+Backend:  https://a6cars-api.up.railway.app
+Database: [PostgreSQL connection string from Railway]
 ```
 
 ---
@@ -118,22 +118,22 @@ location.reload();
 ```javascript
 // Open DevTools Console
 console.log(window.API_CONFIG.BACKEND_URL);
-  // Should show: https://a6cars.onrender.com
+  // Should show: https://a6cars-api.up.railway.app
 ```
 
 ### **Problem: API calls failing with 404**
 
 **Check:**
-1. Backend is running: `curl https://a6cars.onrender.com/`
+1. Backend is running: `curl https://a6cars-api.up.railway.app/`
 2. Database is initialized: Run `setup_pg.sql`
-3. Environment variables set in Render
+3. Environment variables set in Railway
 4. CORS is enabled in backend (should be)
 
 ### **Problem: Images not loading**
 
 **Solution:**
 - Check image paths in console
- - Should be: `https://a6cars.onrender.com/uploads/...`
+ - Should be: `https://a6cars-api.up.railway.app/uploads/...`
 - If showing different URL, there's a mismatch
 
 ### **Problem: Login redirects to wrong page**
@@ -165,11 +165,11 @@ console.log(window.API_CONFIG.BACKEND_URL);
 
 ## **🎯 Next Steps**
 
-1. **Force redeploy frontend** on Render
+1. **Force redeploy frontend** on Railway
 2. **Clear browser cache** (Ctrl+Shift+Delete)
-3. **Test login** at https://a6cars-frontend.onrender.com/login.html
+3. **Test login** at https://a6cars-frontend.up.railway.app/login.html
 4. **Check console** for any API errors (F12)
-5. **Monitor logs** in Render dashboard
+5. **Monitor logs** in Railway dashboard
 
 ---
 

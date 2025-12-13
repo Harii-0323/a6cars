@@ -65,21 +65,15 @@ pool.query('SELECT NOW()', (err, result) => {
 
 ### **Fix 2: Correct Port Configuration**
 
-**File**: `render.yaml` (line 24)
+**File**: `railway.yaml` (or Railway Dashboard environment variables)
 
-**Before:**
+**Configuration:**
 ```yaml
 - key: PORT
   value: "3000"
 ```
 
-**After:**
-```yaml
-- key: PORT
-  value: "10000"
-```
-
-**Why:** Render's free tier assigns a random port, but detects and uses 10000 by default.
+**Why:** Railway automatically detects port configuration and assigns appropriate networking.
 
 ---
 
@@ -97,7 +91,7 @@ app.listen(PORT, () =>
 
 **After:**
 ```javascript
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 A6 Cars backend running on http://0.0.0.0:${PORT}`);
 });
@@ -130,7 +124,7 @@ process.on('SIGINT', () => {
 **Benefits:**
 - Listens on all network interfaces (`0.0.0.0`)
 - Properly closes server and database connections on shutdown
-- Allows Render to restart gracefully
+- Allows Railway to restart gracefully
 - Prevents connection pool exhaustion
 
 ---
@@ -142,9 +136,9 @@ process.on('SIGINT', () => {
 | `backend/server.js` | Added connection pooling config | Prevent connection exhaustion |
 | `backend/server.js` | Added pool error handler | Better error visibility |
 | `backend/server.js` | Added connection test on startup | Verify DB connectivity early |
-| `backend/server.js` | Changed port to 10000 | Match Render's port expectation |
+| `backend/server.js` | Changed port to 3000 | Default port for Express |
 | `backend/server.js` | Added graceful shutdown handlers | Clean process termination |
-| `render.yaml` | Changed PORT from 3000 to 10000 | Match Render configuration |
+| `railway.yaml` | Created for Railway deployment | Railway configuration |
 
 ---
 
@@ -173,8 +167,8 @@ npm error A complete log of this run can be found in: /root/.npm/_logs/...
 |------|--------|---------|
 | Code committed | ✅ | Commit: `b0eb0c1` |
 | Code pushed to GitHub | ✅ | `git push origin main` |
-| Render auto-deploy triggered | ⏳ | Waits for next deployment |
-| Backend restarts on port 10000 | ⏳ | After Render redeploys |
+| Railway auto-deploy triggered | ⏳ | Waits for next deployment |
+| Backend restarts on port 3000 | ⏳ | After Railway redeploys |
 | Database connections pooled | ⏳ | Automatic on startup |
 | Graceful shutdown enabled | ⏳ | Active on deployment |
 
@@ -197,11 +191,11 @@ npm error A complete log of this run can be found in: /root/.npm/_logs/...
 
 ## 🔍 How It Works Now
 
-1. **Startup (Port 10000)**
+1. **Startup (Port 3000)**
    ```
    Node process starts
    ↓
-   Listens on 0.0.0.0:10000
+   Listens on 0.0.0.0:3000
    ↓
    Database connection pool created (max 20)
    ↓
@@ -209,7 +203,7 @@ npm error A complete log of this run can be found in: /root/.npm/_logs/...
    ↓
    ✅ "Database connected successfully"
    ↓
-   ✅ "Backend running on 0.0.0.0:10000"
+   ✅ "Backend running on 0.0.0.0:3000"
    ```
 
 2. **Runtime**
@@ -227,7 +221,7 @@ npm error A complete log of this run can be found in: /root/.npm/_logs/...
 
 3. **Render Restart (SIGTERM)**
    ```
-   Render sends SIGTERM signal
+   Railway sends SIGTERM signal
    ↓
    Process logs: "⚠️ SIGTERM received"
    ↓
@@ -237,7 +231,7 @@ npm error A complete log of this run can be found in: /root/.npm/_logs/...
    ↓
    process.exit(0) → Clean shutdown
    ↓
-   Render restarts container with new code
+   Railway restarts container with new code
    ```
 
 ---
@@ -267,13 +261,13 @@ npm error A complete log of this run can be found in: /root/.npm/_logs/...
 
 ## 📞 Next Steps
 
-1. **Monitor Render Deployment**
-  - Check: https://a6cars.onrender.com
-  - Logs should show port 10000 with ✅ database connection
+1. **Monitor Railway Deployment**
+  - Check: https://a6cars-api.up.railway.app
+  - Logs should show port 3000 with ✅ database connection
 
 2. **Test Backend Endpoints**
   ```bash
-  curl https://a6cars.onrender.com/api/cars
+  curl https://a6cars-api.up.railway.app/api/cars
   ```
 
 3. **Verify Payment Flow**

@@ -15,8 +15,8 @@ const QRCode = require("qrcode");
 const app = express();
 app.use(cors({
   origin: [
-    "https://a6cars-frontend-4i84.onrender.com",
-    "https://a6cars.onrender.com",
+    "https://a6cars-frontend.up.railway.app",
+    "https://a6cars-api.up.railway.app",
     "http://localhost:5173"
   ],
   methods: ["GET", "POST", "PUT", "DELETE"],
@@ -54,7 +54,7 @@ app.get('/debug/routes', (req, res) => {
 const connectionString = process.env.DATABASE_URL || 
   `postgresql://${process.env.DB_USER || 'root'}:${process.env.DB_PASS || 'password'}@${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME || 'a6cars_db'}`;
 
-console.log('📡 Connecting to database...');
+// Connecting to database (log suppressed to reduce noise)
 
 const pool = new Pool({
   connectionString,
@@ -70,7 +70,7 @@ pool.on('error', (err) => {
 });
 
 pool.on('connect', () => {
-  console.log('✅ New connection established');
+  // connection established
 });
 
 // Test connection on startup with promise
@@ -79,7 +79,7 @@ pool.query('SELECT NOW()', (err, result) => {
     console.error('❌ Database connection error:', err.message);
     console.error('   Connection string:', connectionString.replace(/:[^:]*@/, ':****@'));
   } else {
-    console.log('✅ Database connected successfully at', result.rows[0].now);
+    console.log('✅ Database connected successfully');
     // Run auto-migration on successful connection
     runDatabaseMigrations();
   }
@@ -664,7 +664,7 @@ app.get('/api/admin/car-schedule/:car_id', verifyAdmin, async (req, res) => {
 // - Refunds are scheduled and marked pending; admin can process them
 // ============================================================
 app.post('/api/cancel-booking', async (req, res) => {
-  console.log('🔍 Cancel Booking API called:', req.body);
+  // Cancel Booking API called (request logged at higher level if needed)
 
   const {
     booking_id,
@@ -727,7 +727,7 @@ app.post('/api/cancel-booking', async (req, res) => {
     if (cancelled_by === 'admin') {
       refundPercent = 100;
       refundAmount = paidAmount;
-      console.log('🟢 Admin cancellation → Full refund:', refundAmount);
+      // admin cancellation → full refund
     } else {
       // user cancellation
       if (!booking.paid) {
@@ -753,8 +753,7 @@ app.post('/api/cancel-booking', async (req, res) => {
         refundPercent = 50;
         refundAmount = parseFloat((paidAmount * 0.5).toFixed(2));
       }
-
-      console.log('🔵 User cancellation refund:', refundAmount, 'percent:', refundPercent);
+      // user cancellation refund computed
     }
 
     // Insert cancellation record
@@ -1302,7 +1301,7 @@ app.post("/api/payment/confirm", async (req, res) => {
 // ✅ CUSTOMER: Verify payment by reference ID
 // ============================================================
 app.post("/api/verify-payment", async (req, res) => {
-  console.log("🔍 verify-payment endpoint called with body:", req.body);
+  // verify-payment called
   const { booking_id, payment_reference_id, customer_id } = req.body;
   
   if (!booking_id || !payment_reference_id || !customer_id) {

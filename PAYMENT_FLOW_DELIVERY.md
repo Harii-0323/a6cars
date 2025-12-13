@@ -677,7 +677,7 @@ END: Customer has both QRs ready to use
    ```
 
 ### Test Production Flow:
-1. Go to: https://a6cars-frontend-4i84.onrender.com
+1. Go to: https://a6cars-frontend.up.railway.app
 2. Login with test credentials
 3. Go to booking page
 4. Select dates → Click "Book Now"
